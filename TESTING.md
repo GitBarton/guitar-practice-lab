@@ -15,7 +15,7 @@
 6. **Diagrams**: switch TAB/Fretboard, labels Notes/Intervals/Hidden, advance selected note.
 7. **Repertoire**: save Autumn Leaves working key, target tempo, notes and readiness; verify updated Songs list and Progress.
 8. **History**: export Markdown weekly report, CSV, and JSON; import JSON and ensure no duplicates.
-9. **Offline**: after a successful first HTTPS load, temporarily disconnect from internet, refresh and practise, then reconnect and sync.
+9. **Offline**: after a successful first HTTPS load, temporarily disconnect from internet, refresh and practice, then reconnect and sync.
 10. **Cloud**: configure test project with SQL, sign in, create drill on Windows, sync, sign in on iPhone, verify same drill appears. Confirm another Supabase user cannot read that history.
 
 ## Known scope boundaries

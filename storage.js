@@ -22,7 +22,7 @@ export function weeklyReport(state,days=7){
   '# Guitar Practice Lab — weekly review',
   `Generated: ${new Date().toLocaleDateString()}. Period: last ${days} days.`,
   `Completed sessions: ${sessions.length}; planned practice minutes completed/reported: ${duration}; drills logged: ${drills.length}; song entries: ${songs.length}.`,
-  `Keys practised: ${keys.join(', ')||'none recorded'}.`,
+  `Keys practiced: ${keys.join(', ')||'none recorded'}.`,
   `Self-ratings: clean ${countRatings.clean}, mostly clean ${countRatings.almost}, needs work ${countRatings.retry}.`,
   `Reported issues: ${sortedIssues.map(([i,n])=>`${i} (${n})`).join(', ')||'none'}.`,
   '## Drill data',...(topTempos.length?topTempos.map(s=>'- '+s):['- No drills recorded.']),

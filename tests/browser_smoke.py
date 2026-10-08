@@ -28,7 +28,7 @@ with sync_playwright() as p:
  print('HOME:',page.locator('h1').first.inner_text())
  print('ERRORS:',errors)
  page.screenshot(path=str(root/'preview-desktop.png'),full_page=True)
- assert 'Ready to practise' in page.locator('h1').first.inner_text()
+ assert 'Ready to practice' in page.locator('h1').first.inner_text()
  page.get_by_role('button',name='Start 45-minute session').click()
  page.wait_for_timeout(100)
  print('PRACTICE:',page.locator('h1').first.inner_text())
