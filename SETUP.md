@@ -30,7 +30,7 @@ Then open `http://localhost:8000/`. Opening `index.html` by double click (`file:
 3. Open **Project Settings / Connect / API** (the exact menu label can change). Copy your **Project URL** (`https://...supabase.co`) and its **publishable key** (`sb_publishable_...`) or legacy **anon public key**. **Do not copy a `service_role` key or a secret key.**
 4. Open **Authentication → URL Configuration**. Set the **Site URL** to your *exact published GitHub Pages URL*, including `/guitar-practice-lab/`. Add that same URL to **Redirect URLs**. The trailing slash is useful to match your project root. The app sends the canonical page path as the email-login redirect.
 5. Decide how to configure the app:
-   - **Recommended for multi-device:** edit `config.js` in your GitHub repository and fill `supabaseUrl` and `supabaseKey` with the **public** values. Commit. Reload your website. Public URL/key are safe only because strict RLS protects the data. Your GitHub source will contain these public values, not any login secrets.
+   - **Recommended for multi-device:** edit `config.js` in your GitHub repository and confirm the prefilled `supabaseUrl`, then fill `supabaseKey` with the **public** values. Commit. Reload your website. Public URL/key are safe only because strict RLS protects the data. Your GitHub source will contain these public values, not any login secrets.
    - **Alternative:** open the app → Settings → Cloud and paste those values. This is per-device and you would have to paste them again on the next device.
 6. In the website's **Settings & cloud**, enter the email address you'll use and press **Send magic link**. Open the email link on that same browser/device, or use the link in a browser that has the app configuration. Check spam if necessary.
 7. Confirm the Settings page shows your email and **Cloud saved**. Run a practice drill, log it, and use **Sync now**.
@@ -84,3 +84,10 @@ git push -u origin main
 ```
 
 Create the empty public repository first and replace the placeholder username. You may need to authorize GitHub authentication in your browser. The GitHub web interface remains sufficient for the normal case.
+
+### Recovering after browser-site-data deletion
+
+- Clearing the ordinary browser **cache** should not delete practice logs or Supabase authentication, but clearing **cookies and other site data** does.
+- Public connection settings can be restored by GitHub-hosted `config.js` on every page load (the site includes the project URL; add only your public `sb_publishable_...` key).
+- Login sessions are not stored as reusable credentials in GitHub. Request a fresh Supabase email magic link, then sync.
+- If cloud sync succeeded before site data was removed, completed records download after sign-in; unsynchronized records and unfinished sessions cannot be recovered without a JSON backup.
