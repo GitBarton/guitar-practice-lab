@@ -24,3 +24,10 @@
 - No audio transcription or fretboard motion capture.
 - App does not embed copyrighted full-song charts or lyrics.
 - Not every dynamically computed fingering is optimal for every player's hand or guitar model.
+
+### New feature checks
+
+- The **Timing & metronome** card appears before the active exercise diagram. Start the timer with sound enabled; when time expires it should stop and play three short tones (the browser must allow Web Audio).
+- Choose **Finish & rate**, enter optional exercise-design feedback, then rate the drill; **Progress → Copy app feedback** contains the note.
+- Sync cloud, export JSON, and verify completed records return after reauthentication.
+- Before deliberately clearing site data, verify **Cloud saved** and save a JSON export. Then reauthenticate using email.
