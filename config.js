@@ -3,5 +3,5 @@
 // IMPORTANT: NEVER place a service_role or secret API key in this client-side file.
 window.GPL_CONFIG = {
   supabaseUrl: 'https://wwbbxozauwsppviyzlan.supabase.co',
-  supabaseKey: ''
+  supabaseKey: 'sb_publishable_c6EOnGD4maUmMgNCfjb6jg_xeRW8c9Z'
 };
