@@ -42,3 +42,10 @@ A local-first, zero-build, static jazz guitar practice app. Mac, Windows, iPhone
 Edit `DRILLS`, `SONGS`, `REFERENCES` and `makeSession` in `data.js`. The shape generation logic is in `music.js` and should be tested when modifying chord formulas.
 
 See **TESTING.md** for tests and acceptance checks.
+
+## October 2026 updates
+
+- Timing and metronome are displayed above the active exercise diagram. The countdown stops and plays a three-tone alert when time expires, if Web Audio is available. Mobile devices may mute or suspend audio while locked or in the background.
+- After **Finish & rate**, optionally add feedback about the exercise design, diagram, instructions or fingering. These notes are kept in your private drill records and can be shared with ChatGPT using **Progress → Copy app feedback**. Nothing is sent automatically.
+- For easy setup and recovery, the project's public Supabase URL is bundled in `config.js`. Add only the public `sb_publishable_...` key to that file. Never add your Supabase database password, secret/service-role API key, or personal sign-in session.
+- Clearing browser cookies/site data erases the local sign-in session and any unsynchronized practice. Sign in again using a magic link to restore previously cloud-synchronized records. Export JSON backups periodically.
