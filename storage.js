@@ -7,28 +7,67 @@ export function createRecord(kind,payload){return {id:uid(),kind,payload,created
 export function addRecord(state,kind,payload){const r=createRecord(kind,payload);state.records.push(r);saveState(state);return r;}
 export function mergeRecords(state,incoming=[]){const ids=new Set(state.records.map(r=>r.id));let added=0;for(const r of incoming){if(r?.id&&r?.kind&&r?.created_at&&!ids.has(r.id)){state.records.push({id:r.id,kind:r.kind,payload:r.payload||{},created_at:r.created_at});ids.add(r.id);added++;}}if(added){state.records.sort((a,b)=>a.created_at.localeCompare(b.created_at));saveState(state);}return added;}
 export function downloadText(filename,contents,type='text/plain'){const blob=new Blob([contents],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+export function validRatingPercent(payload){
+ const value=payload?.ratingPct;
+ return Number.isInteger(value)&&value>=0&&value<=100&&value%10===0?value:null;
+}
+export function isHighQualityDrill(payload){
+ const pct=validRatingPercent(payload);
+ // Older 3-level feedback is preserved exactly; 'clean' is never assigned
+ // a fabricated numeric equivalent.
+ return pct===null?payload?.rating==='clean':pct>=90;
+}
+export function ratingDisplay(payload){
+ const pct=validRatingPercent(payload);
+ return pct===null?(payload?.rating?String(payload.rating)+' (legacy)':'—'):pct+'%';
+}
 function csvCell(v){return '"'+String(v??'').replaceAll('"','""')+'"';}
-export function exportCsv(state){const headers=['date','kind','exercise','song','key','tempo_bpm','minutes','rating','issue','notes'];const rows=state.records.map(r=>{
- const p=r.payload||{};return [r.created_at,r.kind,p.drillId||'',p.songId||'',p.key||'',p.bpm??p.tempo??'',p.seconds?Math.round(p.seconds/60*100)/100:p.durationMinutes??'',p.rating||'',p.issue||'',p.notes||''].map(csvCell).join(',');});return [headers.join(','),...rows].join('\r\n');}
+export function exportCsv(state){const headers=['date','kind','exercise','song','key','tempo_bpm','minutes','rating','rating_percent','issue','notes'];const rows=state.records.map(r=>{
+ const p=r.payload||{};return [r.created_at,r.kind,p.drillId||'',p.songId||'',p.key||'',p.bpm??p.tempo??'',p.seconds?Math.round(p.seconds/60*100)/100:p.durationMinutes??'',p.rating||'',validRatingPercent(p)??'',p.issue||'',p.notes||''].map(csvCell).join(',');});return [headers.join(','),...rows].join('\r\n');}
 export function importedSnapshot(state, snapshot){const rows=snapshot?.records;if(!Array.isArray(rows))throw new Error('This file does not contain a practice records array.');if(rows.length>100000)throw new Error('Import is too large.');return mergeRecords(state,rows);}
 export function weeklyReport(state,days=7){
- const since=Date.now()-days*86400000;const records=state.records.filter(r=>Date.parse(r.created_at)>=since);const sessions=records.filter(r=>r.kind==='session');const drills=records.filter(r=>r.kind==='drill');const songs=records.filter(r=>r.kind==='song');
- const duration=sessions.reduce((a,r)=>a+(Number(r.payload?.durationMinutes)||0),0);const keys=[...new Set(sessions.map(r=>r.payload?.key).filter(Boolean))];
- const countRatings={clean:0,almost:0,retry:0};const issues={};const tempos={};
- for(const r of drills){const p=r.payload||{};if(p.rating in countRatings)countRatings[p.rating]++;if(p.issue&&p.issue!=='none')issues[p.issue]=(issues[p.issue]||0)+1;if(!tempos[p.drillId])tempos[p.drillId]=[];tempos[p.drillId].push({bpm:p.bpm, rating:p.rating,key:p.key});}
- const sortedIssues=Object.entries(issues).sort((a,b)=>b[1]-a[1]);
- const topTempos=Object.entries(tempos).map(([name,entries])=>{const clean=entries.filter(e=>e.rating==='clean').map(e=>Number(e.bpm)).filter(Number.isFinite);return clean.length?`${name}: best clean ${Math.max(...clean)} BPM (${entries.length} attempts, keys: ${[...new Set(entries.map(e=>e.key))].join(', ')})`:`${name}: ${entries.length} attempts, no clean rating yet`;});
+ const since=Date.now()-days*86400000;
+ const records=state.records.filter(r=>Date.parse(r.created_at)>=since);
+ const sessions=records.filter(r=>r.kind==='session');
+ const drills=records.filter(r=>r.kind==='drill');
+ const songs=records.filter(r=>r.kind==='song');
+ const duration=sessions.reduce((a,r)=>a+(Number(r.payload?.durationMinutes)||0),0);
+ const keys=[...new Set(sessions.map(r=>r.payload?.key).filter(Boolean))];
+ const legacy={clean:0,almost:0,retry:0};
+ const issues={},byDrill={},scores=[];
+ for(const r of drills){
+  const p=r.payload||{},pct=validRatingPercent(p);
+  if(pct!==null)scores.push(pct);
+  else if(p.rating in legacy)legacy[p.rating]++;
+  if(p.issue&&p.issue!=='none')issues[p.issue]=(issues[p.issue]||0)+1;
+  const id=p.drillId||'unknown';
+  (byDrill[id]??=[]).push({bpm:Number(p.bpm),pct,legacy:p.rating||'',key:p.key||'',subdivision:p.subdivision||'quarter',position:p.position||'low'});
+ }
+ const mean=scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):null;
+ const high=scores.filter(n=>n>=90).length;
+ const top=Object.entries(byDrill).map(([name,attempts])=>{
+  const qualified=attempts.filter(x=>(x.pct!==null?x.pct>=90:x.legacy==='clean')&&Number.isFinite(x.bpm)&&x.bpm>0);
+  const peak=qualified.length?Math.max(...qualified.map(x=>x.bpm)):null;
+  const ratings=attempts.filter(x=>x.pct!==null).map(x=>x.pct);
+  const avg=ratings.length?Math.round(ratings.reduce((a,b)=>a+b,0)/ratings.length):null;
+  const distinct=new Set(attempts.map(x=>x.key+' / '+x.subdivision+' / '+x.position));
+  return name+': '+attempts.length+' attempt(s), '+(avg===null?'no percentage rating yet':'avg '+avg+'% across '+ratings.length+' rated attempt(s)')+
+   (peak===null?'':'; best qualifying tempo '+peak+' BPM')+
+   '; contexts '+[...distinct].join(', ');
+ });
+ const notes=sessions.filter(s=>s.payload?.notes).slice(-6).map(s=>'- '+(s.payload.key||'—')+': '+s.payload.notes);
  return [
-  '# Guitar Practice Lab — weekly review',
-  `Generated: ${new Date().toLocaleDateString()}. Period: last ${days} days.`,
-  `Completed sessions: ${sessions.length}; planned practice minutes completed/reported: ${duration}; drills logged: ${drills.length}; song entries: ${songs.length}.`,
-  `Keys practiced: ${keys.join(', ')||'none recorded'}.`,
-  `Self-ratings: clean ${countRatings.clean}, mostly clean ${countRatings.almost}, needs work ${countRatings.retry}.`,
-  `Reported issues: ${sortedIssues.map(([i,n])=>`${i} (${n})`).join(', ')||'none'}.`,
-  '## Drill data',...(topTempos.length?topTempos.map(s=>'- '+s):['- No drills recorded.']),
-  '## Session notes',...(sessions.filter(s=>s.payload?.notes).slice(-6).map(s=>'- '+s.payload.key+': '+s.payload.notes)||[]),
-  '## What I want ChatGPT to do',
-  'Identify two actionable priorities for next week. Recommend small changes to the 45-minute plan based on the recorded data. Avoid comparing tempos across different subdivisions, keys or exercises as if they were equivalent; recognize that precision ratings are self-reported.',
+ '# Guitar Practice Lab — weekly review',
+ 'Generated: '+new Date().toLocaleDateString()+'. Period: last '+days+' days.',
+ 'Completed sessions: '+sessions.length+'; practice minutes reported: '+duration+'; drills logged: '+drills.length+'; song entries: '+songs.length+'.',
+ 'Keys practiced: '+(keys.join(', ')||'none recorded')+'.',
+ 'Self-assessed execution quality (10% steps): '+(mean===null?'no numeric ratings yet':mean+'% average across '+scores.length+' rated drills')+'. '+high+' rated at 90–100%.',
+ 'Historical 3-level ratings (not converted into percentages): clean '+legacy.clean+', mostly clean '+legacy.almost+', needs work '+legacy.retry+'.',
+ 'Reported issues: '+(Object.entries(issues).sort((a,b)=>b[1]-a[1]).map(([n,c])=>n+' ('+c+')').join(', ')||'none')+'.',
+ '## Drill data',...(top.length?top.map(x=>'- '+x):['- No drills recorded.']),
+ '## Session notes',...(notes.length?notes:['- No session notes.']),
+ '## What I want ChatGPT to do',
+ 'Identify two actionable priorities for next week. Recommend small changes to the 45-minute plan based on the recorded data. Treat percentages as subjective quality estimates, not measured accuracy. Do not equate legacy clean/mostly-clean/needs-work labels to numeric percentages or compare different keys/subdivisions/positions as interchangeable.'
  ].join('\n');
 }
 export class CloudSync{
