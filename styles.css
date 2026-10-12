@@ -9,3 +9,36 @@ body[data-theme="light"]{color-scheme:light;--bg:#f2f5f7;--side:#fff;--panel:#ff
 
 /* Active practice timing stays above diagrams and feedback. */
 .practice-timing{margin-bottom:17px}.timer-finished{font-size:13px;color:var(--amber);font-weight:700;margin:4px 0 14px}.timer-finished[hidden]{display:none}
+
+/* Exercise workspace: diagrams/guidance left, 30% timing controls right. */
+.practice-layout{display:grid;grid-template-columns:minmax(0,7fr) minmax(265px,3fr);gap:16px;align-items:start}
+.practice-main,.practice-side{min-width:0}
+.practice-diagram{padding:18px 20px}
+.practice-diagram .card-header{margin-bottom:12px}
+.practice-diagram .card-header h2{font-size:clamp(15px,1.5vw,19px);line-height:1.35;margin:3px 0}
+.practice-instructions{border-top:1px solid var(--line);margin-top:14px;padding-top:13px}
+.practice-instructions .card-header{margin-bottom:4px}
+.practice-instructions h3{margin:0}
+.practice-cue{border-left:3px solid var(--teal);padding:5px 11px;margin:5px 0 9px!important;background:var(--panel2);border-radius:0 8px 8px 0}
+.instruction-stages{margin-top:9px;line-height:1.45}
+.instruction-stages li{margin-bottom:5px}
+.instruction-stages strong{color:var(--text)}
+.practice-references{margin-top:9px}
+.practice-timing{position:sticky;top:12px;margin:0}
+.practice-timing .card-header{margin-bottom:10px}
+.practice-timing .card-header h2{font-size:16px;margin:0}
+.practice-timing .control-panel{gap:5px;justify-content:space-between}
+.practice-timing .tempo{font-size:36px}
+.practice-timing .timer{font-size:29px}
+.practice-timing .buttons{gap:6px}
+.practice-timing .buttons .btn{flex:1 1 42%;white-space:normal;padding:9px 6px;font-size:11px}
+.practice-timing .form-row{gap:7px}
+.practice-timing .form-row .form-group{min-width:105px}
+.practice-timing .form-group label{font-size:11px}
+.practice-timing select{font-size:12px;padding:9px 6px}
+.practice-route{margin-top:12px}
+.practice-route summary{font-size:13px}
+.feedback-consent{display:flex;align-items:center;gap:9px}
+.feedback-consent input{width:auto;accent-color:var(--teal)}
+@media(max-width:1170px){.practice-layout{grid-template-columns:minmax(0,1fr)}.practice-side{grid-row:1;display:block}.practice-timing{position:static}.practice-timing .buttons .btn{flex:0 1 auto;padding:10px 12px;font-size:12px}}
+@media(max-width:770px){.practice-diagram{padding:15px}.practice-timing .control-panel{flex-wrap:nowrap}.practice-timing .buttons{justify-content:flex-start}.practice-timing .buttons .btn{flex:1 1 44%}.practice-side{min-width:0}}
