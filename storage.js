@@ -49,10 +49,37 @@ export class CloudSync{
   this.status('Sign-in link requested. Check your email (including spam).');
  }
  async signOut(){if(!this.client)return;const {error}=await this.client.auth.signOut();if(error)throw error;this.user=null;this.status('Signed out. Local records remain on this device.');this.onUpdate?.();}
+ async publishOptedInFeedback(){
+  if(!this.user||!this.client)return;
+  const consented=this.state.records.filter(r=>r.kind==='drill'&&r.payload?.publicFeedbackConsent===true
+    &&typeof r.payload?.appFeedback==='string'&&r.payload.appFeedback.trim()
+    &&typeof r.payload?.publicFeedbackId==='string');
+  if(!consented.length)return;
+  let submitted=0;
+  for(let start=0;start<consented.length;start+=75){
+   const batch=consented.slice(start,start+75),ids=batch.map(r=>r.payload.publicFeedbackId);
+   const {data,error}=await this.client.from('app_feedback_queue').select('id').in('id',ids);
+   if(error)throw Error('Run supabase-feedback-queue.sql in your Supabase SQL Editor: '+error.message);
+   const existing=new Set((data||[]).map(row=>row.id));
+   const rows=batch.filter(r=>!existing.has(r.payload.publicFeedbackId)).map(r=>({
+    id:r.payload.publicFeedbackId,user_id:this.user.id,
+    drill_id:String(r.payload.drillId||'general').slice(0,160),
+    category:['general','instructions','diagram','fingering','timing','other'].includes(r.payload.appFeedbackType)?r.payload.appFeedbackType:'general',
+    message:r.payload.appFeedback.trim().slice(0,1200),publication_consent:true,created_at:r.created_at
+   }));
+   if(rows.length){
+    const {error:insertError}=await this.client.from('app_feedback_queue').insert(rows);
+    if(insertError&&insertError.code!=='23505')throw insertError;
+    submitted+=rows.length;
+   }
+  }
+  if(submitted)this.status('Practice cloud saved · '+submitted+' development suggestion(s) submitted','success');
+ }
  async sync(){if(this.busy||!this.user||!this.client)return;this.busy=true;this.status('Syncing…');try{
   const remote=[];let from=0;for(let page=0;page<100;page++){const {data,error}=await this.client.from('practice_records').select('id,kind,payload,created_at').order('created_at',{ascending:true}).range(from,from+499);if(error)throw error;remote.push(...(data||[]));if(!data||data.length<500)break;from+=500;}
   const remoteIds=new Set(remote.map(r=>r.id));const received=mergeRecords(this.state,remote);
   const missing=this.state.records.filter(r=>!remoteIds.has(r.id));for(let i=0;i<missing.length;i+=150){const batch=missing.slice(i,i+150).map(r=>({...r,user_id:this.user.id}));const {error}=await this.client.from('practice_records').upsert(batch,{onConflict:'id'});if(error)throw error;}
   this.status(`Cloud saved · ${received} record(s) received${missing.length?', '+missing.length+' uploaded':''}`,'success');if(received)this.onUpdate?.();
+  try{await this.publishOptedInFeedback();}catch(e){this.status('Practice cloud saved; public feedback pending: '+String(e.message||e),'error');}
  }catch(e){this.lastError=String(e.message||e);this.status('Offline or sync failed: '+this.lastError,'error');}finally{this.busy=false;}}
 }
