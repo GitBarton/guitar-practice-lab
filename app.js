@@ -1,6 +1,6 @@
-import {APP_VERSION,KEYS,CATEGORIES,SONGS,DRILLS,DRILL_BY_ID,REFERENCES,REFERENCE_BY_ID,makeSession} from './data.js';
+import {APP_VERSION,KEYS,CATEGORIES,SONGS,DRILLS,DRILL_BY_ID,REFERENCES,REFERENCE_BY_ID,RELEASE_NOTES,makeSession} from './data.js';
 import {buildExample,renderTabSvg,renderFretboardSvg,shellShapes,chordDiagramSvg,progressionFor,escapeHtml as e,pitchName,keyPc,INTERVALS,buildNotePath} from './music.js';
-import {loadState,saveState,addRecord,uid,weeklyReport,downloadText,exportCsv,importedSnapshot,CloudSync} from './storage.js';
+import {loadState,saveState,addRecord,uid,weeklyReport,downloadText,exportCsv,importedSnapshot,validRatingPercent,isHighQualityDrill,ratingDisplay,CloudSync} from './storage.js';
 const state=loadState();
 // Public URL/key defaults survive browser-site-data deletion. The private auth session does not.
 const publishedCloud=window.GPL_CONFIG||{};
@@ -9,7 +9,7 @@ if((!state.cloud?.url||!state.cloud?.key)&&(publishedCloud.supabaseUrl||publishe
  saveState(state);
 }
 document.body.dataset.theme=state.settings.theme;
-let showRating=false,diagramStep=-1,cloudMessage='Local only · records saved in this browser',cloudKind='info';let toastTimeout=0;
+let showRating=false,diagramStep=-1,ratingPercent=80,cloudMessage='Local only · records saved in this browser',cloudKind='info';let toastTimeout=0;
 const $=id=>document.getElementById(id);
 const safe=(s)=>e(s??'');
 const categoryTitle=cat=>CATEGORIES.find(c=>c[0]===cat)?.[1]||cat;
@@ -87,8 +87,11 @@ function renderPractice(){if(!state.active)return `${pageHeader('Practice','Acti
  <div class="form-group" style="margin-top:12px"><label for="app-feedback-text">Your suggestion (optional)</label><textarea id="app-feedback-text" rows="3" maxlength="1200" placeholder="Example: Show a second fingering for the B-string shift."></textarea></div>
  <div class="form-group" style="margin-top:14px"><label class="feedback-consent"><input type="checkbox" id="app-feedback-public"/> Publish this suggestion to the development queue</label></div>
  <p class="footnote">Optional and off by default. Only the exercise ID, category and suggestion will be public; never include personal details. Your ratings and session history stay private. Review changes before any deployment.</p>
- <div class="divider"></div><p class="small muted">Choose your performance rating to save this exercise and continue.</p><div class="rating-row">${[['clean','Clean','Controlled & relaxed'],['almost','Mostly clean','A few mistakes'],['retry','Needs work','Slow it down']].map(([id,title,txt])=>`<button class="btn" data-action="rate-${id}"><span class="rating-h">${title}</span><span class="rating-sm">${txt}</span></button>`).join('')}</div>
- ${btn('rating-cancel','Continue practicing','small ghost')}`:`<div class="buttons">${btn('rating-open',`${ic('check')} Finish & rate`,'primary')}${btn('skip-drill','Skip drill','ghost')}${btn('end-early','End session','quiet')}</div>`}</div></div>
+ <div class="divider"></div><div class="card-header"><div><h3>Execution quality</h3><p class="small muted">Your self-assessment, not an automatically measured accuracy score. Choose 0–100% in 10% steps.</p></div><div id="rating-percent" class="rating-percent" aria-live="polite">${ratingPercent}%</div></div>
+ <div class="rating-control"><button type="button" class="btn" data-action="rating-decrement" aria-label="Decrease quality by 10 percentage points">−10%</button><span class="small muted">Adjust by 10%</span><button type="button" class="btn" data-action="rating-increment" aria-label="Increase quality by 10 percentage points">+10%</button></div>
+ <div class="rating-scale" role="group" aria-label="Self-assessed execution quality">${Array.from({length:11},(_,i)=>i*10).map(pct=>`<button type="button" class="rating-chip ${ratingPercent===pct?'selected':''}" data-action="rating-set:${pct}" data-rating-value="${pct}" aria-pressed="${ratingPercent===pct}">${pct}%</button>`).join('')}</div>
+ <p class="footnote">0% = unable to execute the drill; 50% = inconsistent; 80% = mostly controlled; 100% = clean and confident. Use the same standard when comparing sessions.</p>
+ <div class="buttons" style="margin-top:16px">${btn('rating-save',`Save ${ratingPercent}% & continue`,'primary')}${btn('rating-cancel','Continue practicing','small ghost')}</div>`:`<div class="buttons">${btn('rating-open',`${ic('check')} Finish & rate`,'primary')}${btn('skip-drill','Skip drill','ghost')}${btn('end-early','End session','quiet')}</div>`}</div></div>
  <aside class="practice-side">
  <div class="card practice-timing"><div class="card-header"><h2>Time & metronome</h2>${tag('Exercise '+(a.position+1)+' / '+a.entries.length)}</div>${previewTime}</div>
  <details class="card practice-route"><summary>Session route · ${a.entries.length} exercises</summary>
@@ -163,14 +166,16 @@ function startSession(isFree=false,drillId=null,songId=null){if(state.active){se
  if(state.settings.selectedKey!=='auto')a.key=state.settings.selectedKey;
  if(isFree){a.entries=[{id:drillId||'song',minutes:drillId?DRILL_BY_ID[drillId].minutes:12,done:false}];a.songId=songId||a.songId;}
  state.active=a;saveState(state);showRating=false;diagramStep=-1;setRoute('practice');}
-function finishCurrent(rating,issue){const a=state.active,entry=currentDrill();if(!entry)return;pauseTimer();metronome.stop();const drillId=entry.id==='song'?`song:${a.songId}`:entry.id;
+function finishCurrent(percent,issue){
+ if(!Number.isInteger(percent)||percent<0||percent>100||percent%10!==0){showToast('Choose a quality score in 10% steps.');return;}
+const a=state.active,entry=currentDrill();if(!entry)return;pauseTimer();metronome.stop();const drillId=entry.id==='song'?`song:${a.songId}`:entry.id;
  const appFeedback=$('app-feedback-text')?.value?.trim()?.slice(0,1200)||'';
  const appFeedbackType=appFeedback?$('app-feedback-type')?.value||'general':'';
  const publicFeedbackConsent=Boolean(appFeedback&&$('app-feedback-public')?.checked);
  const publicFeedbackId=publicFeedbackConsent?uid():null;
- const p={sessionId:a.id,drillId,key:a.key,bpm:Number(state.settings.defaultBpm),rating,issue:issue||'none',seconds:Math.round(clockMs()/1000),subdivision:state.settings.subdivision,position:state.settings.position,meter:state.settings.meter,mode:a.mode,dayNumber:a.dayNumber,appFeedback,appFeedbackType,publicFeedbackConsent,publicFeedbackId};addRecord(state,'drill',p);
- if(entry.id==='song'){const previous=latestSong(a.songId)||{};addRecord(state,'song',{...previous,songId:a.songId,readiness:previous.readiness||'developing',notes:[previous.notes,'Practice session: '+rating].filter(Boolean).join(' | '),minutes:entry.minutes,fromSession:true});}
- entry.done=true;entry.rating=rating;entry.bpm=p.bpm;entry.seconds=p.seconds;a.position++;a.elapsedMs=0;a.startedAt=null;a.timerNotifiedFor=-1;saveState(state);showRating=false;diagramStep=-1;cloud.sync();render();}
+ const p={sessionId:a.id,drillId,key:a.key,bpm:Number(state.settings.defaultBpm),ratingPct:percent,issue:issue||'none',seconds:Math.round(clockMs()/1000),subdivision:state.settings.subdivision,position:state.settings.position,meter:state.settings.meter,mode:a.mode,dayNumber:a.dayNumber,appFeedback,appFeedbackType,publicFeedbackConsent,publicFeedbackId};addRecord(state,'drill',p);
+ if(entry.id==='song'){const previous=latestSong(a.songId)||{};addRecord(state,'song',{...previous,songId:a.songId,readiness:previous.readiness||'developing',notes:[previous.notes,'Practice session: '+percent+'% self-assessed execution'].filter(Boolean).join(' | '),minutes:entry.minutes,fromSession:true});}
+ entry.done=true;entry.ratingPct=percent;entry.bpm=p.bpm;entry.seconds=p.seconds;a.position++;a.elapsedMs=0;a.startedAt=null;a.timerNotifiedFor=-1;saveState(state);showRating=false;diagramStep=-1;cloud.sync();render();}
 function finishEarly(){if(!state.active)return;pauseTimer();metronome.stop();state.active.position=state.active.entries.length;saveState(state);render();}
 function saveCompletedSession(){const a=state.active;if(!a)return;pauseTimer();metronome.stop();a.notes=$('session-notes')?.value?.trim()||'';const seconds=a.entries.reduce((total,x)=>total+(x.seconds||0),0);addRecord(state,'session',{sessionId:a.id,key:a.key,mode:a.mode,dayNumber:a.dayNumber,songId:a.songId,drillsCompleted:a.entries.filter(x=>x.done).length,drillsPlanned:a.entries.length,durationMinutes:Math.round(seconds/60),notes:a.notes,isFree:a.isFree});state.active=null;saveState(state);cloud.sync();showToast('Session saved. Your next key is ready.');setRoute('progress');}
 function saveSong(id){const s=SONGS.find(x=>x.id===id);if(!s)return;const tempo=Number($('song-tempo')?.value||0);const key=$('song-key')?.value?.trim()?.slice(0,12)||'';const notes=$('song-notes')?.value?.trim()||'';const readiness=$('song-readiness')?.value||'learning';const sections=[...document.querySelectorAll('input[data-song-section]:checked')].map(x=>x.dataset.songSection);
@@ -184,11 +189,23 @@ function appFeedbackReport(){const rows=state.records.filter(r=>r.kind==='drill'
  ...rows.map(r=>{const p=r.payload;const title=DRILL_BY_ID[p.drillId]?.title||p.drillId||'Song practice';return '- '+r.created_at.slice(0,10)+' | '+title+' | '+(p.appFeedbackType||'general')+' | '+p.appFeedback;})].join('\n');}
 async function copyAppFeedback(){const notes=state.records.filter(r=>r.kind==='drill'&&r.payload?.appFeedback?.trim());if(!notes.length){showToast('No app feedback recorded yet.');return;}
  const report=appFeedbackReport();try{await navigator.clipboard.writeText(report);showToast(notes.length+' app-feedback note(s) copied. Paste into ChatGPT.');}catch{downloadText('guitar-practice-app-feedback.md',report,'text/markdown');showToast('Clipboard unavailable. Feedback report downloaded.');}}
+function setRatingPercent(value){
+ ratingPercent=Math.max(0,Math.min(100,Math.round(Number(value)/10)*10));
+ const shown=$('rating-percent');if(shown)shown.textContent=ratingPercent+'%';
+ document.querySelectorAll('[data-rating-value]').forEach(button=>{
+  const selected=Number(button.dataset.ratingValue)===ratingPercent;
+  button.classList.toggle('selected',selected);
+  button.setAttribute('aria-pressed',String(selected));
+ });
+ const save=document.querySelector('[data-action="rating-save"]');
+ if(save)save.textContent='Save '+ratingPercent+'% & continue';
+}
 const actions={
  'start-session':()=>startSession(), 'resume-session':()=>setRoute('practice'),'toggle-timer':toggleTimer,'tempo-up':()=>changeTempo(5),'tempo-down':()=>changeTempo(-5),
  'metro-toggle':async()=>{await metronome.toggle();const label=$('metro-label');if(label)label.textContent=metronome.playing?'Stop click':'Metronome';},
- 'rating-open':()=>{pauseTimer();showRating=true;render();},'rating-cancel':()=>{showRating=false;render();},
- 'rate-clean':()=>finishCurrent('clean',$('drill-issue')?.value), 'rate-almost':()=>finishCurrent('almost',$('drill-issue')?.value), 'rate-retry':()=>finishCurrent('retry',$('drill-issue')?.value),
+ 'rating-open':()=>{pauseTimer();ratingPercent=80;showRating=true;render();},'rating-cancel':()=>{showRating=false;render();},
+ 'rating-decrement':()=>setRatingPercent(ratingPercent-10),'rating-increment':()=>setRatingPercent(ratingPercent+10),
+ 'rating-save':()=>finishCurrent(ratingPercent,$('drill-issue')?.value),
  'skip-drill':()=>{pauseTimer();metronome.stop();if(state.active){state.active.position++;state.active.startedAt=null;state.active.elapsedMs=0;saveState(state);render();}},
  'end-early':finishEarly,'save-session':saveCompletedSession,'resume-last':()=>{const a=state.active;if(a){a.position=Math.max(0,a.entries.length-1);saveState(state);render();}},
  'diagram-tab':()=>{state.settings.diagram='tab';saveState(state);render();},'diagram-fretboard':()=>{state.settings.diagram='fretboard';saveState(state);render();},
@@ -202,7 +219,7 @@ const actions={
  'cloud-sign-out':async()=>{try{await cloud.signOut();render();}catch(err){showToast(err.message);}},
  'cloud-sync':async()=>{if(!cloud.client)await cloud.init();if(!cloud.user){showToast('Sign in before syncing.');return;}await cloud.sync();render();}
 };
-document.addEventListener('click',async ev=>{const btn=ev.target.closest('[data-action]');if(!btn)return;ev.preventDefault();const name=btn.dataset.action;if(name?.startsWith('start-free:'))return startSession(true,name.slice(11));if(name?.startsWith('song-focus:'))return startSession(true,null,name.slice(11));if(name?.startsWith('save-song:'))return saveSong(name.slice(10));const handler=actions[name];if(handler){try{await handler();}catch(error){console.error(error);showToast('Action failed: '+error.message);}}});
+document.addEventListener('click',async ev=>{const btn=ev.target.closest('[data-action]');if(!btn)return;ev.preventDefault();const name=btn.dataset.action;if(name?.startsWith('start-free:'))return startSession(true,name.slice(11));if(name?.startsWith('song-focus:'))return startSession(true,null,name.slice(11));if(name?.startsWith('save-song:'))return saveSong(name.slice(10));if(name?.startsWith('rating-set:'))return setRatingPercent(Number(name.slice(11)));const handler=actions[name];if(handler){try{await handler();}catch(error){console.error(error);showToast('Action failed: '+error.message);}}});
 document.addEventListener('change',async ev=>{const el=ev.target;if(el.dataset.setting){let value=el.value;if(el.dataset.setting==='selectedMode'&&state.active)return;state.settings[el.dataset.setting]=value;saveState(state);if(el.dataset.setting==='theme')document.body.dataset.theme=value;render();if(['subdivision','meter'].includes(el.dataset.setting)&&metronome.playing)metronome.stop();}
  if(el.id==='import-file'&&el.files?.[0]){try{const file=el.files[0];if(file.size>25_000_000)throw Error('File is larger than 25 MB.');const json=JSON.parse(await file.text());const added=importedSnapshot(state,json);showToast(`${added} records imported. Existing records preserved.`);cloud.sync();render();}catch(error){showToast('Import failed: '+error.message);}}
  if(el.id==='drill-category')filterDrills();});
