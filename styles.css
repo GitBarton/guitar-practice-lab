@@ -60,3 +60,6 @@ body[data-theme="light"]{color-scheme:light;--bg:#f2f5f7;--side:#fff;--panel:#ff
 .release-changes li{margin:6px 0}
 @media(min-width:1350px){.rating-scale{grid-template-columns:repeat(11,minmax(0,1fr))}}
 @media(max-width:410px){.rating-scale{grid-template-columns:repeat(4,minmax(0,1fr))}.rating-control .small{font-size:11px}.release-entry{padding:16px}}
+
+/* Keep the release-history link usable on narrow phone displays. */
+@media(max-width:550px){.topbar .eyebrow{display:none}.top-right{margin-left:auto;gap:6px}.topbar .top-right .pill:not(.release-link){display:none}.topbar .release-link{max-width:175px;overflow:hidden;text-overflow:ellipsis}.topbar .top-right a.btn{flex-shrink:0}}
