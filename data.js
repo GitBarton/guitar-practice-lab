@@ -1,4 +1,26 @@
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '1.1.0';
+export const RELEASE_NOTES = [
+  {
+    version: '1.1.0', date: '2026-10-12', title: 'Precision and feedback',
+    changes: [
+      'Rate exercise execution from 0% to 100% in 10% steps, with one-tap choices and ±10% controls.',
+      'Track average self-assessed quality and qualifying tempos while preserving older three-level ratings without inventing percentages.',
+      'See version history directly in Guitar Practice Lab using the What’s new link.',
+      'Use a compact practice layout: instructions alongside diagrams and metronome/timer on the right when space permits.',
+      'Hide labels correctly on TAB and fretboard diagrams.',
+      'Opt in to a separate development feedback queue; review changes via GitHub pull requests before deployment.',
+      'A timer-completion chime and clearer exercise feedback were introduced during this release cycle.'
+    ]
+  },
+  {
+    version: '1.0.0', date: '2026-10-08', title: 'Initial release',
+    changes: [
+      'A local-first guitar practice workspace with guided 45-minute technique and repertoire sessions.',
+      'TAB and fretboard views, metronome, twelve-key rotation and the Logos-Motive repertoire library.',
+      'Progress reporting, JSON and CSV exports, and optional Supabase sync for multiple devices.'
+    ]
+  }
+];
 export const KEYS = ['C','F','Bb','Eb','Ab','Db','Gb','B','E','A','D','G'];
 export const CATEGORIES = [
   ['picking','Picking & feel','Wrist motion, swing and low-tension control'],

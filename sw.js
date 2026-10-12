@@ -1,4 +1,4 @@
-const CACHE='gpl-app-v1-20261011';
+const CACHE='gpl-app-v1.1.0-20261012';
 const ASSETS=['./','./index.html','./styles.css','./app.js','./data.js','./music.js','./storage.js','./config.js','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});

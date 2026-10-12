@@ -42,3 +42,24 @@ body[data-theme="light"]{color-scheme:light;--bg:#f2f5f7;--side:#fff;--panel:#ff
 .feedback-consent input{width:auto;accent-color:var(--teal)}
 @media(max-width:1170px){.practice-layout{grid-template-columns:minmax(0,1fr)}.practice-side{grid-row:1;display:block}.practice-timing{position:static}.practice-timing .buttons .btn{flex:0 1 auto;padding:10px 12px;font-size:12px}}
 @media(max-width:770px){.practice-diagram{padding:15px}.practice-timing .control-panel{flex-wrap:nowrap}.practice-timing .buttons{justify-content:flex-start}.practice-timing .buttons .btn{flex:1 1 44%}.practice-side{min-width:0}}
+
+/* v1.1: quick, accessible 10%-step execution-quality ratings. */
+.rating-percent{font-size:34px;line-height:1;font-weight:800;color:var(--teal);font-variant-numeric:tabular-nums;white-space:nowrap}
+.rating-control{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:12px 0}
+.rating-control .btn{min-width:74px;padding:10px}
+.rating-scale{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;margin-top:8px}
+.rating-chip{min-height:43px;min-width:0;border:1px solid var(--line);border-radius:10px;background:var(--panel2);color:var(--text);font-weight:700;font-size:12px;padding:7px 3px;cursor:pointer;touch-action:manipulation}
+.rating-chip:hover{border-color:var(--teal);filter:brightness(1.08)}
+.rating-chip.selected,.rating-chip[aria-pressed="true"]{background:var(--teal);border-color:var(--teal);color:#062c2c}
+.rating-chip:focus-visible{outline:2px solid var(--teal);outline-offset:3px}
+.release-link{color:var(--teal);text-decoration:none}
+.release-link:hover{border-color:var(--teal);color:var(--text)}
+.release-timeline{max-width:930px;display:grid;gap:16px}
+.release-entry .card-header{align-items:start}
+.release-changes{margin:6px 0 4px;padding-left:20px;line-height:1.75;color:var(--muted);font-size:13px}
+.release-changes li{margin:6px 0}
+@media(min-width:1350px){.rating-scale{grid-template-columns:repeat(11,minmax(0,1fr))}}
+@media(max-width:410px){.rating-scale{grid-template-columns:repeat(4,minmax(0,1fr))}.rating-control .small{font-size:11px}.release-entry{padding:16px}}
+
+/* Keep the release-history link usable on narrow phone displays. */
+@media(max-width:550px){.topbar .eyebrow{display:none}.top-right{margin-left:auto;gap:6px}.topbar .top-right .pill:not(.release-link){display:none}.topbar .release-link{max-width:175px;overflow:hidden;text-overflow:ellipsis}.topbar .top-right a.btn{flex-shrink:0}}

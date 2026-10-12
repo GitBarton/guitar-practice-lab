@@ -1,6 +1,6 @@
-# Guitar Practice Lab v1.0
+# Guitar Practice Lab v1.1.0
 
-A local-first, zero-build, static jazz guitar practice app. Mac, Windows, iPhone responsive. Includes 35 drills, practice sessions (45 min), interactive generated guitar TAB / fretboard / chord diagrams, Web Audio metronome, 12-key rotation, repertoire notes for Logos-Motive songs, one-tap drill ratings, weekly exports, CSV/JSON backups, and optional Supabase cloud synchronization.
+A local-first, zero-build, static jazz guitar practice app. Mac, Windows, iPhone responsive. Includes 35 drills, practice sessions (45 min), interactive generated guitar TAB / fretboard / chord diagrams, Web Audio metronome, 12-key rotation, repertoire notes for Logos-Motive songs, 10%-step self-assessed execution quality ratings, weekly exports, CSV/JSON backups, and optional Supabase cloud synchronization.
 
 ## Start here
 
@@ -49,3 +49,7 @@ See **TESTING.md** for tests and acceptance checks.
 - After **Finish & rate**, optionally add feedback about the exercise design, diagram, instructions or fingering. These notes are kept in your private drill records and can be shared with ChatGPT using **Progress → Copy app feedback**. Nothing is sent automatically.
 - For easy setup and recovery, the project's public Supabase URL is bundled in `config.js`. Add only the public `sb_publishable_...` key to that file. Never add your Supabase database password, secret/service-role API key, or personal sign-in session.
 - Clearing browser cookies/site data erases the local sign-in session and any unsynchronized practice. Sign in again using a magic link to restore previously cloud-synchronized records. Export JSON backups periodically.
+
+## Release history
+
+The in-app **v1.1.0 · What's new** link opens the full release notes. The same information is maintained in [CHANGELOG.md](CHANGELOG.md). Old clean / mostly-clean / needs-work drill ratings remain readable as legacy labels and are not silently converted to percentages.
