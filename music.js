@@ -75,16 +75,17 @@ export function buildExample(kind,key='C',quality='maj7',octaves=2,position='low
 }
 function svgWrap(content,w,h,label){return `<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${escapeHtml(label)}" viewBox="0 0 ${w} ${h}" style="max-width:100%;display:block" width="${w}" height="${h}">${content}</svg>`;}
 const svgText=(x,y,text,cls='',size=12)=>`<text x="${x}" y="${y}" fill="currentColor" font-size="${size}" font-family="system-ui, sans-serif" text-anchor="middle" class="${cls}">${escapeHtml(text)}</text>`;
-export function renderTabSvg(notes=[],active=-1){
+export function renderTabSvg(notes=[],active=-1,labels='note'){
  const n=Math.min(notes.length,35),w=Math.max(640,100+n*53),h=226;let body=`<rect width="${w}" height="${h}" rx="12" fill="transparent"/>`;
  for(let s=0;s<6;s++){const y=46+s*23;body+=`<line x1="72" y1="${y}" x2="${w-15}" y2="${y}" stroke="var(--fret-line,#687785)" stroke-width="1" opacity=".63"/>${svgText(35,y+4,STRING_NAMES[s])}`;}
  notes.slice(0,n).forEach((note,i)=>{const x=104+i*53,y=46+note.string*23,highlight=active===i;
  body+=`<rect x="${x-20}" y="${y-15}" width="40" height="30" fill="var(--panel-bg,#171f2d)"/>`;
  body+=`<rect x="${x-19}" y="${y-16}" width="38" height="32" rx="8" fill="${highlight?'#315fa8':'transparent'}"/>`;
- body+=svgText(x,y+5,note.fret,highlight?'on-note':'',16);body+=svgText(x,22,note.pick||((i%2)?'U':'D'),'pick-label',13);
- body+=svgText(x,206,note.name||'', '',12);
+ body+=svgText(x,y+5,note.fret,highlight?'on-note':'',16);
+ if(labels!=='hidden'){body+=svgText(x,22,note.pick||((i%2)?'U':'D'),'pick-label',13);
+  body+=svgText(x,206,labels==='interval'?(note.interval||note.name||''):(note.name||''),'',12);}
  });
- body+=svgText(35,22,'PICK','',9);body+=svgText(35,206,'NOTE','',9);
+ if(labels!=='hidden'){body+=svgText(35,22,'PICK','',9);body+=svgText(35,206,labels==='interval'?'DEGREE':'NOTE','',9);}
  return svgWrap(body,w,h,'Guitar tablature with pick direction and note names');
 }
 export function renderFretboardSvg(notes=[],active=-1,labels='note'){
@@ -96,9 +97,10 @@ export function renderFretboardSvg(notes=[],active=-1,labels='note'){
  const yByS=s=>52+s*28;
  for(let s=0;s<6;s++){const y=yByS(s);body+=`<line x1="94" y1="${y}" x2="${94+(end-start+1)*cell}" y2="${y}" stroke="var(--fret-line,#8091a3)" stroke-width="${1+s*.4}" opacity=".7"/>${svgText(36,y+4,STRING_NAMES[s])}`;}
  notes.forEach((no,i)=>{if(no.fret<start||no.fret>end)return;const x=94+(no.fret-start+.5)*cell,y=yByS(no.string),root=no.interval==='1'||i===0;
- const color=active===i?'#f4b740':root?'#3767d7':'#169b91';const c=labels==='interval'?(no.interval||no.name):(labels==='hidden'?'•':no.name);
- body+=`<circle cx="${x}" cy="${y}" r="${active===i?19:16}" fill="${color}" stroke="${active===i?'#fff':'#132030'}" stroke-width="${active===i?2.2:1.5}"/>${svgText(x,y+4,c,'',c.length>3?9:11)}`;
- if(notes.length<15)body+=svgText(x,y-22,(i+1),'',10);
+ const color=active===i?'#f4b740':root?'#3767d7':'#169b91';
+ const c=labels==='interval'?(no.interval||no.name):no.name;
+ body+=`<circle cx="${x}" cy="${y}" r="${active===i?19:16}" fill="${color}" stroke="${active===i?'#fff':'#132030'}" stroke-width="${active===i?2.2:1.5}"/>${labels==='hidden'?'':svgText(x,y+4,c||'','',(c||'').length>3?9:11)}`;
+ if(labels!=='hidden'&&notes.length<15)body+=svgText(x,y-22,(i+1),'',10);
  });
  return svgWrap(body,w,h,'Fretboard with positions, finger targets and notes');
 }
