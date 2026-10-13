@@ -5,18 +5,14 @@ on:
   workflow_dispatch:
   issues:
     types: [opened, closed, reopened, labeled, unlabeled]
-  pull_request:
-    types: [opened, reopened, closed, ready_for_review, synchronize]
 permissions:
   contents: read
   issues: write
-  pull-requests: read
 concurrency:
   group: guitar-practice-development-dashboard
   cancel-in-progress: false
 jobs:
   audit:
-    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
