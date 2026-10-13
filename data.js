@@ -1,5 +1,15 @@
-export const APP_VERSION = '1.1.0';
+export const APP_VERSION = '1.2.0';
 export const RELEASE_NOTES = [
+  {
+    version: '1.2.0', date: '2026-10-13', title: 'Dynamic technique and musical challenges',
+    changes: [
+      'Add staged picking practice with single-string precision, string skips, double-stops and octave targets.',
+      'Expand major-pentatonic questions and answers with manually advanced musical stages.',
+      'Introduce a G-string blues/rock vibrato drill for all four fretting fingers, including D/B muting and hammer-on/pull-off control.',
+      'Clarify chromatic V7 third enclosures with the selected key and easier-to-read B-flat note spellings.',
+      'Preserve the current tempo, metronome, 10%-step ratings, songs, session history, private sync and exports during stage changes.'
+    ]
+  },
   {
     version: '1.1.0', date: '2026-10-12', title: 'Precision and feedback',
     changes: [
