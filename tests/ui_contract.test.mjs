@@ -36,3 +36,14 @@ test('changing BPM keeps an active metronome running',()=>{
  const schedule=app.slice(schedulerStart,app.indexOf(' stop(){',schedulerStart));
  assert.match(schedule,/state\.settings\.defaultBpm/,'audio scheduler must dynamically use updated BPM');
 });
+
+test('staged practice has navigation and does not stop the metronome or timer',()=>{
+ assert.match(app,/stage-prev/);
+ assert.match(app,/stage-next/);
+ assert.match(app,/stage-panel/);
+ assert.match(app,/entry\.stageIndex=next;diagramStep/);
+ const action=app.split('function movePracticeStage(delta){')[1].split('const actions={')[0];
+ assert.doesNotMatch(action,/metronome\.stop/);
+ assert.doesNotMatch(action,/pauseTimer\(/);
+ assert.doesNotMatch(action,/elapsedMs=0/);
+});
