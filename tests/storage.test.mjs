@@ -41,7 +41,7 @@ test('weekly report separates legacy ratings from numeric ratings',()=>{
  assert.match(report,/mostly clean 1/);
 });
 test('releases are synchronized with package version',()=>{
- assert.equal(APP_VERSION,'1.1.0');
+ assert.equal(APP_VERSION,'1.2.0');
  assert.equal(RELEASE_NOTES[0].version,APP_VERSION);
  assert.ok(RELEASE_NOTES.length>=2);
 });
