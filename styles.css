@@ -63,3 +63,19 @@ body[data-theme="light"]{color-scheme:light;--bg:#f2f5f7;--side:#fff;--panel:#ff
 
 /* Keep the release-history link usable on narrow phone displays. */
 @media(max-width:550px){.topbar .eyebrow{display:none}.top-right{margin-left:auto;gap:6px}.topbar .top-right .pill:not(.release-link){display:none}.topbar .release-link{max-width:175px;overflow:hidden;text-overflow:ellipsis}.topbar .top-right a.btn{flex-shrink:0}}
+
+/* ii-V-I zone: local-only, beat-aligned chord accompaniment. */
+.harmony-shell{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(270px,1fr);gap:16px;align-items:start}
+.harmony-shell > *{min-width:0}
+.harmony-transport{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:18px;padding:13px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.harmony-transport .buttons{margin:0;gap:7px}
+.harmony-transport .buttons .btn{min-width:66px}
+.harmony-chord-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:19px 0 12px}
+.harmony-chord{border:2px solid var(--line);border-radius:13px;padding:15px 12px;background:var(--panel2);min-height:120px;transition:border-color .1s,box-shadow .1s}
+.harmony-chord h2{font-size:clamp(17px,2.4vw,28px);margin:10px 0 7px;line-height:1.2}
+.harmony-chord.current{border-color:var(--teal);box-shadow:0 0 0 2px color-mix(in srgb,var(--teal),transparent 85%)}
+.harmony-bar{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-weight:650;padding:8px 0;color:var(--teal);font-size:13px}
+.harmony-click{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:12px}
+.harmony-click input{accent-color:var(--teal)}
+@media(max-width:1140px){.harmony-shell{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:650px){.harmony-chord-grid{gap:6px}.harmony-chord{padding:10px 6px;min-height:110px}.harmony-chord h2{font-size:16px}.harmony-transport .buttons{width:100%}.harmony-transport .buttons .btn{flex:1 1 42%;padding:10px 8px}.harmony-bar{font-size:12px}}
