@@ -50,3 +50,31 @@ test('staged practice has navigation and does not stop the metronome or timer',(
  assert.doesNotMatch(action,/pauseTimer\(/);
  assert.doesNotMatch(action,/elapsedMs=0/);
 });
+
+test('drill library categories use accessible clickable pills without removing existing search',()=>{
+ assert.match(app,/function renderDrills\(\)/);
+ assert.match(app,/data-action="drill-filter:/);
+ assert.match(app,/aria-pressed=/);
+ assert.match(app,/role="group" aria-label="Filter drills by category"/);
+ assert.match(app,/categoryCount\(id\)/);
+ assert.match(app,/function setDrillCategory\(category\)/);
+ assert.match(app,/function filterDrills\(\)/);
+ assert.match(app,/selectedDrillCategory/);
+ assert.match(app,/drillSearchText/);
+ assert.match(app,/if\(visible\)count\+\+/);
+ assert.match(app,/drill-filter-empty/);
+ assert.match(app,/drill-filter-result/);
+ assert.match(app,/if\(r.page==='drills'\)filterDrills\(\)/);
+ assert.doesNotMatch(app,/<select id="drill-category"/);
+ assert.match(css,/\.drill-filter-pill\.active/);
+ assert.match(css,/\.drill-filter-pills\{display:flex/);
+});
+test('new pill design preserves all existing drill categories and search wiring',()=>{
+ const data=readFileSync(new URL('../data.js',import.meta.url),'utf8');
+ for(const category of ['picking','muting','arpeggio','pentatonic','jazz','comping','ear'])
+  assert.match(data,new RegExp("\\['"+category+"'"));
+ assert.match(app,/if\(name\?\.startsWith\('drill-filter:'\)\)/);
+ assert.match(app,/if\(ev.target.id==='drill-search'\)/);
+ assert.match(app,/data-search=/);
+ assert.match(app,/data-category=/);
+});
