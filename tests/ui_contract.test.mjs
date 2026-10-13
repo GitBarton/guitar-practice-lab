@@ -22,10 +22,10 @@ test('rating control and release timeline have responsive styles and changed off
  assert.match(css,/\.rating-scale/);
  assert.match(css,/\.release-timeline/);
  assert.match(css,/@media\(max-width:410px\)/);
- assert.match(sw,/const CACHE='gpl-app-[^']+'/);
+ assert.match(sw,/gpl-app-v1\.2\.0/);
  assert.match(sw,/'\.\/song-audio\.js'/);
- assert.match(sw,/'\.\/harmony\.js'/);
  assert.match(sw,/'\.\/backing-audio\.js'/);
+ assert.match(sw,/'\.\/harmony\.js'/);
 });
 
 test('changing BPM keeps an active metronome running',()=>{
@@ -38,4 +38,15 @@ test('changing BPM keeps an active metronome running',()=>{
  assert.ok(schedulerStart>=0,'metronome scheduler should exist');
  const schedule=app.slice(schedulerStart,app.indexOf(' stop(){',schedulerStart));
  assert.match(schedule,/state\.settings\.defaultBpm/,'audio scheduler must dynamically use updated BPM');
+});
+
+test('staged practice has navigation and does not stop the metronome or timer',()=>{
+ assert.match(app,/stage-prev/);
+ assert.match(app,/stage-next/);
+ assert.match(app,/stage-panel/);
+ assert.match(app,/entry\.stageIndex=next;diagramStep/);
+ const action=app.split('function movePracticeStage(delta){')[1].split('const actions={')[0];
+ assert.doesNotMatch(action,/metronome\.stop/);
+ assert.doesNotMatch(action,/pauseTimer\(/);
+ assert.doesNotMatch(action,/elapsedMs=0/);
 });
