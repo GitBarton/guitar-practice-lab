@@ -20,6 +20,8 @@ let showRating=false,diagramStep=-1,ratingPercent=80,cloudMessage='Local only ·
 const $=id=>document.getElementById(id);
 const safe=(s)=>e(s??'');
 const categoryTitle=cat=>CATEGORIES.find(c=>c[0]===cat)?.[1]||cat;
+let selectedDrillCategory='all',drillSearchText='';
+const categoryCount=cat=>cat==='all'?DRILLS.length:DRILLS.filter(d=>d.category===cat).length;
 const iconPaths={home:'<path d="m3 11 9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',play:'<path d="m8 5 11 7-11 7z"/>',pause:'<rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/>',music:'<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',library:'<path d="M4 5h5v16H4zM10 3h5v18h-5zM16 7h4v14h-4z"/>',book:'<path d="M12 7c-3-2-6-2-10-1v14c4-1 7-1 10 1 3-2 6-2 10-1V6c-4-1-7-1-10 1zM12 7v14"/>',chart:'<path d="M4 20V10h4v10zM10 20V4h4v16zM16 20v-7h4v7z"/>',settings:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>',clock:'<circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/>',arrow:'<path d="M5 12h14m-6-6 6 6-6 6"/>',check:'<path d="m4 12 5 5L20 6"/>',chevron:'<path d="m9 18 6-6-6-6"/>',minus:'<path d="M5 12h14"/>',plus:'<path d="M12 5v14M5 12h14"/>',cloud:'<path d="M4 16a4 4 0 0 1 1-8 7 7 0 0 1 13 2 4 4 0 0 1 1 8H5"/>',download:'<path d="M12 3v12m-5-5 5 5 5-5M4 18v3h16v-3"/>',refresh:'<path d="M20 11a8 8 0 0 0-14-5L3 9m0-5v5h5M4 13a8 8 0 0 0 14 5l3-3m0 5v-5h-5"/>',headphones:'<path d="M3 15V12a9 9 0 0 1 18 0v3M3 15h5v6H5a2 2 0 0 1-2-2v-4zm18 0h-5v6h3a2 2 0 0 0 2-2v-4z"/>',target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',upload:'<path d="M12 21V9m-5 5 5-5 5 5M4 6V3h16v3"/>',sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>'};
 const ic=(name)=>`<span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24">${iconPaths[name]||iconPaths.target}</svg></span>`;
 const btn=(action,label,cls='')=>`<button type="button" class="btn ${cls}" data-action="${action}">${label}</button>`;
@@ -42,7 +44,7 @@ function shell(content){const r=route(),active=['today','practice','songs','harm
 }
 function render(){document.body.dataset.theme=state.settings.theme;const r=route();let html='';
  switch(r.page){case 'today':html=renderToday();break;case 'practice':html=renderPractice();break;case 'drills':html=renderDrills();break;case 'drill':html=renderDrillDetail(r.id);break;case 'songs':html=renderSongs();break;case 'harmony':html=renderHarmony();break;case 'song':html=renderSongDetail(r.id);break;case 'references':html=renderReferences();break;case 'reference':html=renderReferenceDetail(r.id);break;case 'progress':html=renderProgress();break;case 'releases':html=renderReleases();break;case 'settings':html=renderSettings();break;default:html=renderToday();}
- $('app').innerHTML=shell(html);updateClock();updateSongTrackUI();}
+ $('app').innerHTML=shell(html);updateClock();updateSongTrackUI();if(r.page==='drills')filterDrills();}
 function queueOverview(s){return `<div class="list">${s.entries.map((entry,i)=>{const d=DRILL_BY_ID[entry.id];return `<div class="step-row ${entry.done?'done':''}"><div class="step-n">${entry.done?'✓':i+1}</div><div class="step-info"><div class="step-name">${safe(d?.title||'Song practice')}</div><div class="step-min">${safe(d?.category?categoryTitle(d.category):'Repertoire')} · ${entry.minutes} min</div></div><span class="small muted">${entry.minutes}:00</span></div>`;}).join('')}</div>`;}
 function renderToday(){const complete=countSessions(),recent=lastSeven(),sessions=recent.filter(r=>r.kind==='session'),minutes=sessions.reduce((x,s)=>x+(Number(s.payload?.durationMinutes)||0),0),pctScores=recent.filter(r=>r.kind==='drill').map(r=>validRatingPercent(r.payload)).filter(n=>n!==null),avgQuality=pctScores.length?Math.round(pctScores.reduce((a,b)=>a+b,0)/pctScores.length):null;
  const mode=state.settings.selectedMode,preview=makeSession(complete,mode,state.settings.selectedSong);if(state.settings.selectedKey!=='auto')preview.key=state.settings.selectedKey;
@@ -108,9 +110,20 @@ function renderPractice(){if(!state.active)return `${pageHeader('Practice','Acti
 }
 function renderEndSession(){const a=state.active;const entries=a.entries;const done=entries.filter(x=>x.done).length;return `${pageHeader('Session recap','Session complete','Review what you practiced and add one practical observation.')}
  <div class="grid-2"><div class="card"><div class="card-header"><h2>Completed drills</h2>${tag(`${done} of ${entries.length}`)}</div>${queueOverview(a)}<div class="divider"></div><label for="session-notes" class="small muted">What should you remember next time?</label><textarea id="session-notes" rows="4" placeholder="e.g. String skips are cleaner at 70 BPM, but B string still rings at 85.">${safe(a.notes||'')}</textarea><div class="buttons" style="margin-top:14px">${btn('save-session',`${ic('check')} Save session`,'primary')}${btn('resume-last','Return to drills','ghost')}</div></div><div class="card"><h2>Key of ${safe(a.key)}</h2><p>Entries were saved individually as you rated each drill. Saving this recap completes the day and advances your 12-key rotation.</p><div class="callout">Weekly exports include completed sessions, individual drill tempos, self-rated precision, recurring issues and session notes.</div></div></div>`;}
-function renderDrills(){return `${pageHeader('Technique library','Musical drills','Choose an exercise, view its notation and start a focused practice session.',`${tag(DRILLS.length+' drills')}`)}
- <div class="search-wrap"><input class="field" id="drill-search" placeholder="Search arpeggios, muting, chromaticism…" aria-label="Search drills"/><select id="drill-category" aria-label="Filter category"><option value="all">All categories</option>${CATEGORIES.map(c=>`<option value="${c[0]}">${c[1]}</option>`).join('')}</select></div>
- <div class="list" id="drill-results">${DRILLS.map(d=>`<a class="list-row drill-search-row" data-category="${d.category}" data-search="${safe((d.title+' '+d.summary+' '+d.category).toLowerCase())}" href="#drill/${d.id}"><div class="row-main"><div class="row-title">${safe(d.title)}</div><div class="row-desc">${safe(d.summary)}</div></div><span class="badge">${d.minutes} min</span>${ic('chevron')}</a>`).join('')}</div>`;}
+function renderDrills(){
+ const options=[['all','All drills'],...CATEGORIES.map(category=>[category[0],category[1]])];
+ return `${pageHeader('Technique library','Musical drills','Select a category or search to find your next exercise.',`${tag(DRILLS.length+' drills')}`)}
+ <div class="drill-filter-panel">
+  <div class="drill-filter-heading"><strong>Browse by category</strong><span class="micro muted">Select one to narrow the library</span></div>
+  <div class="drill-filter-pills" role="group" aria-label="Filter drills by category">
+   ${options.map(([id,title])=>`<button type="button" class="drill-filter-pill ${selectedDrillCategory===id?'active':''}" data-action="drill-filter:${id}" aria-pressed="${selectedDrillCategory===id}" data-drill-filter="${id}">${safe(title)} <span class="pill-count">${categoryCount(id)}</span></button>`).join('')}
+  </div>
+  <div class="search-wrap"><input class="field" id="drill-search" type="search" value="${safe(drillSearchText)}" placeholder="Search within ${safe(selectedDrillCategory==='all'?'all drills':categoryTitle(selectedDrillCategory))}…" aria-label="Search drills" /></div>
+  <div class="drill-filter-result" id="drill-filter-result" aria-live="polite"></div>
+ </div>
+ <div class="list" id="drill-results">${DRILLS.map(d=>`<a class="list-row drill-search-row" data-category="${d.category}" data-search="${safe((d.title+' '+d.summary+' '+d.category).toLowerCase())}" href="#drill/${d.id}"><div class="row-main"><div class="row-title">${safe(d.title)}</div><div class="row-desc">${safe(d.summary)}</div></div><span class="badge">${d.minutes} min</span>${ic('chevron')}</a>`).join('')}</div>
+ <p class="empty hide" id="drill-filter-empty">No drills match this category and search. Try another category or clear the search.</p>`;
+}
 function renderDrillDetail(id){const d=DRILL_BY_ID[id];if(!d)return `${pageHeader('Library','Drill not found','Return to the library.')}`;
  const key=todayKey(),instructions=d.kind==='enclosure'?enclosureInstructions(key):d.instructions,notes=buildExample(currentStage(d)?.exampleKind||d.kind,key,d.quality||'maj7',d.octaves||2,state.settings.position),rec=(d.reference||[]).map(ref=>REFERENCE_BY_ID[ref]).filter(Boolean),isChord=d.kind==='chords';
  return `${pageHeader(categoryTitle(d.category),d.title,d.summary,btn(`start-free:${d.id}`,`${ic('play')} practice this drill`,'primary'))}
@@ -359,7 +372,7 @@ const actions={
  'cloud-sign-out':async()=>{try{await cloud.signOut();render();}catch(err){showToast(err.message);}},
  'cloud-sync':async()=>{if(!cloud.client)await cloud.init();if(!cloud.user){showToast('Sign in before syncing.');return;}await cloud.sync();render();}
 };
-document.addEventListener('click',async ev=>{const btn=ev.target.closest('[data-action]');if(!btn)return;ev.preventDefault();const name=btn.dataset.action;if(name?.startsWith('start-free:'))return startSession(true,name.slice(11));if(name?.startsWith('song-focus:'))return startSession(true,null,name.slice(11));if(name?.startsWith('save-song:'))return saveSong(name.slice(10));if(name?.startsWith('rating-set:'))return setRatingPercent(Number(name.slice(11)));const handler=actions[name];if(handler){try{await handler();}catch(error){console.error(error);showToast('Action failed: '+error.message);}}});
+document.addEventListener('click',async ev=>{const btn=ev.target.closest('[data-action]');if(!btn)return;ev.preventDefault();const name=btn.dataset.action;if(name?.startsWith('drill-filter:'))return setDrillCategory(name.slice(13));if(name?.startsWith('start-free:'))return startSession(true,name.slice(11));if(name?.startsWith('song-focus:'))return startSession(true,null,name.slice(11));if(name?.startsWith('save-song:'))return saveSong(name.slice(10));if(name?.startsWith('rating-set:'))return setRatingPercent(Number(name.slice(11)));const handler=actions[name];if(handler){try{await handler();}catch(error){console.error(error);showToast('Action failed: '+error.message);}}});
 document.addEventListener('change',async ev=>{const el=ev.target;
  if(el.dataset.harmonySetting){const key=el.dataset.harmonySetting;
   harmonySettings[key]=key==='click'?el.checked:key==='barsPerChord'?Number(el.value):key==='volume'?Number(el.value):el.value;
@@ -375,9 +388,31 @@ document.addEventListener('change',async ev=>{const el=ev.target;
  if(el.dataset.trackLoop!==undefined){songTrackPlayer.setFullLoop(el.checked);return;}
 if(el.dataset.setting){let value=el.value;if(el.dataset.setting==='selectedMode'&&state.active)return;state.settings[el.dataset.setting]=value;saveState(state);if(el.dataset.setting==='theme')document.body.dataset.theme=value;render();if(['subdivision','meter'].includes(el.dataset.setting)&&metronome.playing)metronome.stop();}
  if(el.id==='import-file'&&el.files?.[0]){try{const file=el.files[0];if(file.size>25_000_000)throw Error('File is larger than 25 MB.');const json=JSON.parse(await file.text());const added=importedSnapshot(state,json);showToast(`${added} records imported. Existing records preserved.`);cloud.sync();render();}catch(error){showToast('Import failed: '+error.message);}}
- if(el.id==='drill-category')filterDrills();});
-document.addEventListener('input',ev=>{if(ev.target.id==='drill-search')filterDrills();if(ev.target.id==='session-notes'&&state.active){state.active.notes=ev.target.value;saveState(state);}});
-function filterDrills(){const q=($('drill-search')?.value||'').trim().toLowerCase(),cat=$('drill-category')?.value||'all';document.querySelectorAll('.drill-search-row').forEach(row=>{row.classList.toggle('hide',!row.dataset.search.includes(q)||(cat!=='all'&&row.dataset.category!==cat));});}
+});
+document.addEventListener('input',ev=>{if(ev.target.id==='drill-search'){drillSearchText=ev.target.value;filterDrills();}if(ev.target.id==='session-notes'&&state.active){state.active.notes=ev.target.value;saveState(state);}});
+function setDrillCategory(category){
+ if(category!=='all'&&!CATEGORIES.some(c=>c[0]===category))return;
+ selectedDrillCategory=category;
+ document.querySelectorAll('[data-drill-filter]').forEach(pill=>{
+  const active=pill.dataset.drillFilter===category;
+  pill.classList.toggle('active',active);pill.setAttribute('aria-pressed',String(active));
+ });
+ const search=$('drill-search');
+ if(search)search.placeholder='Search within '+(category==='all'?'all drills':categoryTitle(category))+'…';
+ filterDrills();
+}
+function filterDrills(){
+ const q=drillSearchText.trim().toLowerCase(),cat=selectedDrillCategory;
+ let count=0;
+ document.querySelectorAll('.drill-search-row').forEach(row=>{
+  const visible=row.dataset.search.includes(q)&&(cat==='all'||row.dataset.category===cat);
+  row.classList.toggle('hide',!visible);
+  if(visible)count++;
+ });
+ const result=$('drill-filter-result');
+ if(result)result.textContent=count+' of '+DRILLS.length+' drills shown'+(cat==='all'?'':' · '+categoryTitle(cat));
+ const empty=$('drill-filter-empty');if(empty)empty.classList.toggle('hide',count!==0);
+}
 window.addEventListener('hashchange',()=>{const r=route();if(r.page!=='harmony')stopHarmonyPlayback();
  const stillRelevant=(r.page==='song'&&r.id===songTrackPlayer.songId)||(r.page==='practice'&&state.active?.entries?.[state.active?.position]?.id==='song'&&state.active?.songId===songTrackPlayer.songId);
  if(!stillRelevant)songTrackPlayer.pause();
