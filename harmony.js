@@ -26,7 +26,7 @@ export function buildTwoFiveOne(key='C',mode='major'){
     {role:'i',root:tonic,quality:'min6',suffix:'m6'}];
  const chords=defs.map((d,index)=>{
   const form=CHORDS[d.quality],rootName=noteForKey(d.root,key);
-  const midiRoot=(d.index===2?60:48)+d.root; // Bright root-position tonic (C4 for C), lower ii/V support.
+  const midiRoot=(index===2?60:48)+d.root; // Bright root-position tonic (C4 for C), lower ii/V support.
   return {
    index,role:d.role,quality:d.quality,rootPc:d.root,rootName,
    label:rootName+d.suffix,
