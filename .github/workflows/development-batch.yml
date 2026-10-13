@@ -1,0 +1,24 @@
+name: Development issue dashboard
+on:
+  schedule:
+    - cron: '43 */3 * * *'
+  workflow_dispatch:
+  issues:
+    types: [opened, closed, reopened, labeled, unlabeled]
+permissions:
+  contents: read
+  issues: write
+concurrency:
+  group: guitar-practice-development-dashboard
+  cancel-in-progress: false
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update GitHub development dashboard
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python3 scripts/audit_feedback_batch.py
