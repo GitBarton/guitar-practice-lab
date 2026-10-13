@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {KEYS} from '../data.js';
 import {keyPc} from '../music.js';
 import {buildTwoFiveOne,chordAtBar,clampHarmonyTempo,noteForKey} from '../harmony.js';
-import {midiFrequency,ChordBacking} from '../backing-audio.js';
+import {midiFrequency,ChordBacking,makeReverbImpulse,clampMix} from '../backing-audio.js';
 
 test('C major ii-V-I has correct jazz chord symbols and 3rds/7ths',()=>{
  const p=buildTwoFiveOne('C','major');
@@ -74,4 +74,53 @@ test('local Web Audio math and construction do not require a browser or network'
 test('reject unexpected mode or key instead of guessing harmony',()=>{
  assert.throws(()=>buildTwoFiveOne('F# major','major'));
  assert.throws(()=>buildTwoFiveOne('C','dorian'));
+});
+
+test('tonic chord is literal root position in C4: Cmaj7 and Cm6, not inversions',()=>{
+ const major=buildTwoFiveOne('C','major').chords[2],minor=buildTwoFiveOne('C','minor').chords[2];
+ assert.equal(major.label,'Cmaj7');
+ assert.deepEqual(major.midi,[60,64,67,71]);
+ assert.equal(major.bassMidi,48); // C3 instead of muddy C2
+ assert.equal(minor.label,'Cm6');
+ assert.deepEqual(minor.midi,[60,63,67,69]);
+ assert.equal(minor.bassMidi,48);
+ assert.equal(major.midi[0]%12,major.rootPc);
+ assert.equal(minor.midi[0]%12,minor.rootPc);
+ assert.ok(major.midi.every((note,i,arr)=>i===0||arr[i-1]<note));
+ assert.ok(minor.midi.every((note,i,arr)=>i===0||arr[i-1]<note));
+});
+test('all tonics in 12 keys keep root in bass and ascending root-position chord',()=>{
+ for(const key of KEYS)for(const mode of ['major','minor']){
+  const tonic=buildTwoFiveOne(key,mode).chords[2];
+  assert.equal(tonic.midi[0]%12,keyPc(key));
+  assert.equal(tonic.bassMidi%12,keyPc(key));
+  assert.equal(tonic.midi[0]-tonic.bassMidi,12);
+  assert.ok(tonic.midi.every((pitch,i,notes)=>i===0||pitch>notes[i-1]));
+  assert.ok(tonic.midi.every(pitch=>pitch>=60&&pitch<=83));
+ }
+});
+test('reverb mix clamps values and impulse contains a finite decaying tail',()=>{
+ for(const pair of [[0,0],[.42,.42],[1,1],[-1,0],[100,1]]){
+  assert.equal(clampMix(pair[0]),pair[1]);
+ }
+ assert.equal(clampMix(NaN),.42);
+ const channels=[new Float32Array(8000),new Float32Array(8000)];
+ const impulse=makeReverbImpulse({sampleRate:4000,createBuffer:(count,frames,rate)=>{
+  assert.equal(count,2);assert.equal(rate,4000);assert.equal(frames,8000);
+  return {getChannelData:(i)=>channels[i]};
+ }},2);
+ assert.ok(impulse);
+ assert.ok(channels[0].every(Number.isFinite));
+ assert.ok(channels[1].every(Number.isFinite));
+ assert.ok(channels[0].slice(80,400).some(x=>x!==0));
+ const first=Math.max(...channels[0].slice(100,800).map(Math.abs));
+ const last=Math.max(...channels[0].slice(7200).map(Math.abs));
+ assert.ok(first>last*20,'reverb tail should decay strongly');
+});
+test('audio engine is configurable for higher output and reverb, without browser dependencies',()=>{
+ const audio=new ChordBacking();
+ audio.setVolume(.85);audio.setReverb(.65);
+ assert.equal(audio.masterVolume,.85);
+ assert.equal(audio.reverbMix,.65);
+ audio.stop();assert.equal(audio.playing,false);
 });
