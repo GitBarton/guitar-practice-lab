@@ -163,12 +163,12 @@ test('simulated Web Audio output routes correct Cmaj7/Cm6 oscillators through we
  const backing=new ChordBacking();backing.ctx=ctx;backing.setupOutput();
  assert.ok(backing.reverb.buffer);
  assert.ok(connections.some(([a,b])=>a==='convolver'&&b==='gain'));
- assert.ok(connections.some(([a,b])=>a==='gain'&&b==='convolver'));
  assert.ok(connections.some(([a,b])=>a==='compressor'&&b==='destination'));
  backing.masterVolume=.7;backing.setReverb(.6);
  assert.ok(backing.wetBus.gain.value>0);
  const major=buildTwoFiveOne('C','major').chords[2];
  backing.playChord(major,.1,3);
+ assert.ok(connections.some(([a,b])=>a==='gain'&&b==='convolver'));
  assert.equal(frequencies.length,5);
  for(let i=0;i<4;i++)assert.ok(Math.abs(frequencies[i]-midiFrequency(major.midi[i]))<.00001);
  assert.ok(Math.abs(frequencies[4]-midiFrequency(48))<.00001);
