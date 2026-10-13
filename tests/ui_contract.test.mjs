@@ -26,10 +26,13 @@ test('rating control and release timeline have responsive styles and changed off
 });
 
 test('changing BPM keeps an active metronome running',()=>{
- const changeTempo=app.match(/function changeTempo\(n\)\{[\s\S]*?\n\}/)?.[0]??'';
- assert.ok(changeTempo,'changeTempo should exist');
+ const start=app.indexOf('function changeTempo(n){');
+ assert.ok(start>=0,'changeTempo should exist');
+ const changeTempo=app.slice(start,app.indexOf('function pauseTimer()',start));
  assert.match(changeTempo,/state\.settings\.defaultBpm=bpm/);
  assert.doesNotMatch(changeTempo,/metronome\.stop\(\)/);
- const schedule=app.match(/schedule\(\)\{[\s\S]*?\n\s*stop\(\)/)?.[0]??'';
+ const schedulerStart=app.indexOf(' schedule(){');
+ assert.ok(schedulerStart>=0,'metronome scheduler should exist');
+ const schedule=app.slice(schedulerStart,app.indexOf(' stop(){',schedulerStart));
  assert.match(schedule,/state\.settings\.defaultBpm/,'audio scheduler must dynamically use updated BPM');
 });
