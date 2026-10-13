@@ -32,7 +32,7 @@ export function buildTwoFiveOne(key='C',mode='major'){
    label:rootName+d.suffix,
    degrees:form.intervals.slice(),
    midi:form.intervals.map(semi=>midiRoot+semi),
-   bassMidi:36+d.root,
+   bassMidi:(index===2?48:36)+d.root,
    guideTones:[form.third,form.seventh].filter(x=>x!==null).map(semi=>noteForKey(d.root+semi,key))
   };
  });
