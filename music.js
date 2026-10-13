@@ -53,6 +53,15 @@ export function buildNotePath(key='C',quality='maj7',octaves=2,position='low'){
 function cell(note, string, fret,pick){return {name:note,fret,string,pick};}
 export function buildExample(kind,key='C',quality='maj7',octaves=2,position='low'){
  if(kind==='arpeggio'||kind==='scale')return buildNotePath(key,quality,octaves,position);
+
+ // Fingering targets for a G-only vibrato isolation drill (not simultaneous notes).
+ if(kind==='vibrato-g')return [
+  cell('C4',2,5,'D'),cell('Db4',2,6,'D'),cell('D4',2,7,'D'),cell('Eb4',2,8,'D'),
+  cell('C4',2,5,'D'),cell('D4',2,7,'H'),cell('C4',2,5,'P')
+ ];
+ // Pairs are visual fret targets; strike together when the drill instructions say so.
+ if(kind==='double-stop')return [cell('C4',2,5,'D'),cell('E4',1,5,'D')];
+ if(kind==='octave')return [cell('C3',5,8,'D'),cell('C4',3,10,'D')];
  if(kind==='skip')return [cell('D',4,5,'D'),cell('C',2,5,'U'),cell('F',1,6,'D'),cell('C',2,5,'U')];
  if(kind==='wide')return [cell('G',3,5,'D'),cell('A',0,5,'U'),cell('G',3,5,'D'),cell('A',0,5,'U')];
  if(kind==='single')return [cell('C',2,5,'D'),cell('C',2,5,'U'),cell('C',2,5,'D'),cell('C',2,5,'U')];
