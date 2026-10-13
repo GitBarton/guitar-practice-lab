@@ -83,13 +83,13 @@ function renderPractice(){if(!state.active)return `${pageHeader('Practice','Acti
  const stepLabel=isSong?song.title:d.title;
  const guidance=stage?stage.focus:isSong?'Pick a short passage, rehearse it slowly, then compare with your performance tempo.':d.kind==='enclosure'?`Aim for ${enclosureGuide(a.key).target}, the major third of ${enclosureGuide(a.key).dominant}. The approach notes decorate that target.`:d.category==='muting'?'Listen for every unintended string. Silence is part of the exercise.':d.category==='arpeggio'?'Identify the root, third and seventh where present; keep string changes smooth.':d.category==='picking'?'Use a small, relaxed down-up motion. Keep the attack even before raising tempo.':d.category==='jazz'?'Hear each chord change; aim for guide tones on strong beats.':d.category==='ear'?'Sing or imagine the target first; check the result on the guitar.':d.category==='comping'?'Play the rhythm first; keep unused strings quiet and releases deliberate.':'Keep the phrase musical rather than racing through the pattern.';
  const instruct=stage?stage.instructions:isSong?['Select one difficult section, not the entire arrangement.','Play once under tempo, then at performance tempo.','Record what specifically needs work for the next session.']:d.kind==='enclosure'?enclosureInstructions(a.key):d.instructions;
- const stageBar=stage?`<section class="stage-panel" aria-label="Guided exercise stages"><div class="stage-summary"><div><div class="eyebrow">Musical challenge · ${stageIndex+1} of ${stageCount(d)}</div><h3>${safe(stage.title)}</h3></div><span class="pill">${Math.round(entry.minutes/stageCount(d)*60)} sec suggested</span></div><div class="stage-steps"><button type="button" data-action="stage-prev" class="btn small" ${stageIndex===0?'disabled':''}>← Previous stage</button><span class="small muted">Advance when ready; timer and metronome continue.</span><button type="button" data-action="stage-next" class="btn small" ${stageIndex===stageCount(d)-1?'disabled':''}>Next stage →</button></div></section>`:'';
+ const stageBar=stage?`<section class="stage-panel" aria-label="Guided exercise stages"><div class="stage-summary"><div><div class="eyebrow">Musical challenge · ${stageIndex+1} of ${stageCount(d)}</div><h3>${safe(stage.title)}</h3></div><span class="pill">${Math.round(entry.minutes/stageCount(d)*60)} sec suggested</span></div><div class="stage-steps"><button type="button" data-action="stage-prev" class="btn small" ${stageIndex===0?'disabled':''}>← Previous stage</button><span class="small muted">Advance when ready; timer and metronome continue. Press Enter for next stage.</span><button type="button" data-action="stage-next" class="btn small" ${stageIndex===stageCount(d)-1?'disabled':''}>Next stage →</button></div></section>`:'';
  const positionControl=(!isSong&&['arpeggio','scale'].includes(d?.kind))?`<div class="form-group" style="max-width:280px;margin:12px 0"><label>Fretboard area (suggested route)</label><select data-setting="position"><option value="low" ${state.settings.position==='low'?'selected':''}>Lower neck</option><option value="mid" ${state.settings.position==='mid'?'selected':''}>Middle neck</option><option value="high" ${state.settings.position==='high'?'selected':''}>Upper neck</option></select></div>`:'';
  const noteControls=isChords||isSong?'':`<div class="buttons" style="margin-top:10px">${btn('step-prev',`${ic('minus')} Previous note`,'small')}${tag(diagramStep>=0?`Note ${diagramStep+1} of ${notes.length}`:'All notes')}${btn('step-next',`Next note ${ic('arrow')}`,'small')}<div style="flex:1"></div><div class="segmented"><button class="${state.settings.diagram==='tab'?'active':''}" data-action="diagram-tab">TAB</button><button class="${state.settings.diagram==='fretboard'?'active':''}" data-action="diagram-fretboard">Fretboard</button></div></div><div class="buttons" style="margin-top:8px">${btn('labels-note',state.settings.labels==='note'?'✓ Notes':'Notes','small')}${btn('labels-interval',state.settings.labels==='interval'?'✓ Intervals':'Intervals','small')}${btn('labels-hidden',state.settings.labels==='hidden'?'✓ Labels hidden':'Hide labels','small')}</div>`;
  const refs=(d?.reference||[]).map(id=>`<a href="#reference/${id}">${safe(REFERENCE_BY_ID[id]?.title||id)}</a>`).join('');
  return `${pageHeader('Active session',stepLabel,`Day ${a.dayNumber+1} · ${a.key.replace('b','♭')} · ${a.mode==='technique'?'Technique':'Repertoire'} · ${entry.minutes} min`,tag((a.position+1)+' / '+a.entries.length,true))}
  <div class="practice-layout"><div class="practice-main"><div class="card practice-diagram"><div class="card-header"><div><div class="eyebrow">${safe(isSong?'Performance rehearsal':categoryTitle(d.category))}</div><h2 style="margin-top:8px">${safe(isSong?song.focus:d.summary)}</h2></div>${ic('target')}</div>${isMusical?`${progressionPills(a.key)}<div style="height:12px"></div>`:''}${diagram}${positionControl}${noteControls}
- <div class="practice-instructions">${stageBar}<div class="card-header"><h3>How to practise</h3>${ic('book')}</div><p class="practice-cue">${safe(guidance)}</p>
+ <div class="practice-instructions">${stageBar}<p class="practice-shortcuts small muted" aria-label="Practice keyboard shortcuts"><kbd>Space</kbd> Timer pause/resume <span aria-hidden="true">·</span> <kbd>↑</kbd>/<kbd>↓</kbd> BPM ±5${stage?' <span aria-hidden="true">·</span> <kbd>Enter</kbd> Next stage':''}</p><div class="card-header"><h3>How to practise</h3>${ic('book')}</div><p class="practice-cue">${safe(guidance)}</p>
  <ol class="instruction-list instruction-stages">${instruct.map((line,i)=>`<li><strong>${['Prepare','Play','Listen / refine'][i]||'Refine'}.</strong> ${safe(line)}</li>`).join('')}</ol>
  ${refs?`<div class="chip-links practice-references">${refs}</div>`:''}
  ${isSong?`<div class="chip-links practice-references"><a href="#song/${song.id}">Open song profile →</a></div>`:''}
@@ -374,6 +374,30 @@ const actions={
  'cloud-sign-out':async()=>{try{await cloud.signOut();render();}catch(err){showToast(err.message);}},
  'cloud-sync':async()=>{if(!cloud.client)await cloud.init();if(!cloud.user){showToast('Sign in before syncing.');return;}await cloud.sync();render();}
 };
+// Practice-only keys: preserve typing, focused buttons/links, native form controls and system shortcuts.
+function handlePracticeShortcut(ev){
+ if(route().page!=='practice'||!state.active||!currentDrill()||showRating)return false;
+ if(ev.defaultPrevented||ev.altKey||ev.ctrlKey||ev.metaKey||ev.shiftKey||ev.isComposing)return false;
+ const target=ev.target;
+ if(target?.closest?.('input,textarea,select,button,a,[contenteditable],[role="textbox"],[role="button"],[role="combobox"],[role="slider"]'))return false;
+ if(ev.key===' '||ev.code==='Space'){
+  if(ev.repeat)return false;
+  ev.preventDefault();
+  void toggleTimer().catch(error=>{console.error(error);showToast('Timer shortcut failed: '+error.message);});
+  return true;
+ }
+ if(ev.key==='ArrowUp'||ev.key==='ArrowDown'){
+  ev.preventDefault();changeTempo(ev.key==='ArrowUp'?5:-5);return true;
+ }
+ if(ev.key==='Enter'){
+  if(ev.repeat)return false;
+  const entry=currentDrill(),drill=DRILL_BY_ID[entry?.id];
+  if(!drill||stageCount(drill)<1||clampedStageIndex(drill,entry.stageIndex)>=stageCount(drill)-1)return false;
+  ev.preventDefault();movePracticeStage(1);return true;
+ }
+ return false;
+}
+document.addEventListener('keydown',handlePracticeShortcut);
 document.addEventListener('click',async ev=>{const btn=ev.target.closest('[data-action]');if(!btn)return;ev.preventDefault();const name=btn.dataset.action;if(name?.startsWith('drill-filter:'))return setDrillCategory(name.slice(13));if(name?.startsWith('start-free:'))return startSession(true,name.slice(11));if(name?.startsWith('song-focus:'))return startSession(true,null,name.slice(11));if(name?.startsWith('save-song:'))return saveSong(name.slice(10));if(name?.startsWith('rating-set:'))return setRatingPercent(Number(name.slice(11)));const handler=actions[name];if(handler){try{await handler();}catch(error){console.error(error);showToast('Action failed: '+error.message);}}});
 document.addEventListener('change',async ev=>{const el=ev.target;
  if(el.dataset.harmonySetting){const key=el.dataset.harmonySetting;
