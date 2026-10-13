@@ -13,7 +13,7 @@ if((!state.cloud?.url||!state.cloud?.key)&&(publishedCloud.supabaseUrl||publishe
 }
 document.body.dataset.theme=state.settings.theme;
 const songTrackPlayer=new SongTrackPlayer(()=>updateSongTrackUI());
-const harmonySettings=Object.assign({key:'C',mode:'major',tempo:72,barsPerChord:2,volume:.55,click:false},state.settings.harmony||{});
+const harmonySettings=Object.assign({key:'C',mode:'major',tempo:72,barsPerChord:2,volume:.7,reverb:.42,click:false},state.settings.harmony||{});
 let harmonyPosition=null,harmonyStarted=0,harmonyElapsed=0;
 const harmonyBacking=new ChordBacking(position=>{harmonyPosition=position;updateHarmonyUI();});
 let showRating=false,diagramStep=-1,ratingPercent=80,cloudMessage='Local only · records saved in this browser',cloudKind='info';let toastTimeout=0;
@@ -120,7 +120,8 @@ function renderHarmony(){
  const plan=buildTwoFiveOne(harmonySettings.key,harmonySettings.mode);
  const options=KEYS.map(key=>'<option value="'+safe(key)+'" '+(harmonySettings.key===key?'selected':'')+'>'+safe(key)+'</option>').join('');
  const bpmOptions=[1,2,4].map(n=>'<option value="'+n+'" '+(Number(harmonySettings.barsPerChord)===n?'selected':'')+'>'+n+' bar'+(n===1?'':'s')+' per chord</option>').join('');
- const volOptions=[[.25,'Soft'],[.55,'Medium'],[.8,'Loud']].map(v=>'<option value="'+v[0]+'" '+(Number(harmonySettings.volume)===v[0]?'selected':'')+'>'+v[1]+'</option>').join('');
+ const volOptions=[[.25,'Soft'],[.55,'Medium'],[.7,'Fuller'],[.85,'Loud'],[1,'Maximum']].map(v=>'<option value="'+v[0]+'" '+(Number(harmonySettings.volume)===v[0]?'selected':'')+'>'+v[1]+'</option>').join('');
+ const wetOptions=[[0,'Dry'],[.25,'Light room'],[.42,'Warm room'],[.65,'Wet'],[.85,'Very wet']].map(v=>'<option value="'+v[0]+'" '+(Number(harmonySettings.reverb??.42)===v[0]?'selected':'')+'>'+v[1]+'</option>').join('');
  const cards=plan.chords.map((chord,i)=>'<div class="harmony-chord" data-harmony-card="'+i+'"><div class="eyebrow">'+safe(chord.role)+'</div><h2>'+safe(chord.label)+'</h2><div class="small muted">Guide tones: '+safe(chord.guideTones.join(' · '))+'</div></div>').join('');
  const scores=Array.from({length:11},(_,i)=>i*10).map(score=>'<option value="'+score+'" '+(score===80?'selected':'')+'>'+score+'%</option>').join('');
  return pageHeader('Jazz harmony','ii–V–I Practice Zone','Hear major and minor progressions, practise guide tones and improvise with a piano-style chord pulse.')+
@@ -131,6 +132,7 @@ function renderHarmony(){
  '<div class="harmony-transport"><div><div class="eyebrow">Playback tempo</div><div class="tempo"><span id="harmony-bpm">'+harmonySettings.tempo+'</span> <span class="small muted">BPM</span></div></div>'+
  '<div class="buttons">'+btn('harmony-slower','−5 BPM','small')+btn('harmony-play','Play chords','primary')+btn('harmony-stop','Stop sound')+btn('harmony-faster','+5 BPM','small')+'</div></div>'+
  '<div class="form-row" style="margin-top:12px"><div class="form-group"><label>Chord volume</label><select data-harmony-setting="volume">'+volOptions+'</select></div>'+
+ '<div class="form-group"><label>Reverb</label><select data-harmony-setting="reverb">'+wetOptions+'</select></div>'+ 
  '<label class="form-group harmony-click"><span>Rhythmic click</span><input type="checkbox" data-harmony-setting="click" '+(harmonySettings.click?'checked':'')+' /></label></div>'+
  '<p id="harmony-status" class="small muted" role="status">Ready. Press Play to hear the chords.</p>'+
  '<div class="harmony-chord-grid">'+cards+'</div>'+
@@ -363,6 +365,7 @@ document.addEventListener('change',async ev=>{const el=ev.target;
   harmonySettings[key]=key==='click'?el.checked:key==='barsPerChord'?Number(el.value):key==='volume'?Number(el.value):el.value;
   state.settings.harmony={...harmonySettings};saveState(state);
   if(key==='volume'){harmonyBacking.setVolume(harmonySettings.volume);return;}
+  if(key==='reverb'){harmonyBacking.setReverb(harmonySettings.reverb);return;}
   if(key==='click'){harmonyBacking.setClick(harmonySettings.click);return;}
   stopHarmonyPlayback();render();return;
  }

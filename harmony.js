@@ -26,13 +26,13 @@ export function buildTwoFiveOne(key='C',mode='major'){
     {role:'i',root:tonic,quality:'min6',suffix:'m6'}];
  const chords=defs.map((d,index)=>{
   const form=CHORDS[d.quality],rootName=noteForKey(d.root,key);
-  const midiRoot=48+d.root; // comfortable piano register, C3–B3.
+  const midiRoot=(index===2?60:48)+d.root; // Bright root-position tonic (C4 for C), lower ii/V support.
   return {
    index,role:d.role,quality:d.quality,rootPc:d.root,rootName,
    label:rootName+d.suffix,
    degrees:form.intervals.slice(),
    midi:form.intervals.map(semi=>midiRoot+semi),
-   bassMidi:36+d.root,
+   bassMidi:(index===2?48:36)+d.root,
    guideTones:[form.third,form.seventh].filter(x=>x!==null).map(semi=>noteForKey(d.root+semi,key))
   };
  });
