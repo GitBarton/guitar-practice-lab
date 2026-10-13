@@ -1,6 +1,6 @@
 const KEY='guitar-practice-lab-v1';
 export const uid=()=>globalThis.crypto?.randomUUID?.()||('gpl-'+Date.now()+'-'+Math.random().toString(36).slice(2));
-export function defaultState(){return {version:1,records:[],active:null,settings:{theme:'dark',defaultBpm:70,selectedMode:'technique',selectedSong:'autumn-leaves',selectedKey:'auto',diagram:'tab',labels:'note',position:'low',subdivision:'quarter',meter:'4/4'},cloud:{url:'',key:''}};}
+export function defaultState(){return {version:1,records:[],active:null,settings:{theme:'dark',defaultBpm:70,selectedMode:'technique',selectedDuration:45,selectedSong:'autumn-leaves',selectedKey:'auto',diagram:'tab',labels:'note',position:'low',subdivision:'quarter',meter:'4/4'},cloud:{url:'',key:''}};}
 export function loadState(){try{const raw=localStorage.getItem(KEY);if(!raw)return defaultState();const parsed=JSON.parse(raw);const d=defaultState();return {...d,...parsed,settings:{...d.settings,...(parsed.settings||{})},cloud:{...d.cloud,...(parsed.cloud||{})},records:Array.isArray(parsed.records)?parsed.records:[]};}catch{return defaultState();}}
 export function saveState(s){try{localStorage.setItem(KEY,JSON.stringify(s));return true;}catch(e){console.error('Saving practice data failed',e);return false;}}
 export function createRecord(kind,payload){return {id:uid(),kind,payload,created_at:new Date().toISOString()};}
