@@ -164,7 +164,8 @@ let timerAudioCtx=null;
 async function armTimerAudio(){try{const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)return;timerAudioCtx=timerAudioCtx||new Audio();await timerAudioCtx.resume();}catch(e){console.info('Timer audio unavailable',e);}}
 function playTimerChime(){try{if(!timerAudioCtx||timerAudioCtx.state!=='running')return;const base=timerAudioCtx.currentTime+.015;
  [880,1100,1320].forEach((frequency,i)=>{const at=base+i*.23,osc=timerAudioCtx.createOscillator(),gain=timerAudioCtx.createGain();osc.type='sine';osc.frequency.setValueAtTime(frequency,at);gain.gain.setValueAtTime(.0001,at);gain.gain.exponentialRampToValueAtTime(.17,at+.018);gain.gain.exponentialRampToValueAtTime(.0001,at+.18);osc.connect(gain).connect(timerAudioCtx.destination);osc.start(at);osc.stop(at+.20);});}catch(e){console.info('Timer chime unavailable',e);}}
-function changeTempo(n){const bpm=Math.min(240,Math.max(30,Number(state.settings.defaultBpm)+n));state.settings.defaultBpm=bpm;saveState(state);const value=$('current-bpm');if(value)value.textContent=bpm; if(metronome.playing){metronome.stop();}render();}
+function changeTempo(n){const bpm=Math.min(240,Math.max(30,Number(state.settings.defaultBpm)+n));state.settings.defaultBpm=bpm;saveState(state);const value=$('current-bpm');if(value)value.textContent=bpm; // The metronome scheduler reads BPM every tick; keep audio running.
+ render();}
 function pauseTimer(){if(state.active?.startedAt){state.active.elapsedMs=Math.max(0,(state.active.elapsedMs||0)+Date.now()-state.active.startedAt);state.active.startedAt=null;saveState(state);}}
 async function toggleTimer(){const a=state.active;if(!a)return;if(a.startedAt){pauseTimer();}else{
  await armTimerAudio();if(!state.active||state.active!==a)return;
