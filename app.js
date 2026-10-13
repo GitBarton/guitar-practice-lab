@@ -1,5 +1,7 @@
 import {APP_VERSION,KEYS,CATEGORIES,SONGS,DRILLS,DRILL_BY_ID,REFERENCES,REFERENCE_BY_ID,RELEASE_NOTES,makeSession} from './data.js';
 import {buildExample,renderTabSvg,renderFretboardSvg,shellShapes,chordDiagramSvg,progressionFor,escapeHtml as e,pitchName,keyPc,INTERVALS,buildNotePath} from './music.js';
+import {buildTwoFiveOne,clampHarmonyTempo} from './harmony.js';
+import {ChordBacking} from './backing-audio.js';
 import {loadState,saveState,addRecord,uid,weeklyReport,downloadText,exportCsv,importedSnapshot,validRatingPercent,isHighQualityDrill,ratingDisplay,CloudSync} from './storage.js';
 const state=loadState();
 // Public URL/key defaults survive browser-site-data deletion. The private auth session does not.
@@ -9,6 +11,9 @@ if((!state.cloud?.url||!state.cloud?.key)&&(publishedCloud.supabaseUrl||publishe
  saveState(state);
 }
 document.body.dataset.theme=state.settings.theme;
+const harmonySettings=Object.assign({key:'C',mode:'major',tempo:72,barsPerChord:2,volume:.55,click:false},state.settings.harmony||{});
+let harmonyPosition=null,harmonyStarted=0,harmonyElapsed=0;
+const harmonyBacking=new ChordBacking(position=>{harmonyPosition=position;updateHarmonyUI();});
 let showRating=false,diagramStep=-1,ratingPercent=80,cloudMessage='Local only · records saved in this browser',cloudKind='info';let toastTimeout=0;
 const $=id=>document.getElementById(id);
 const safe=(s)=>e(s??'');
@@ -18,7 +23,7 @@ const ic=(name)=>`<span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"
 const btn=(action,label,cls='')=>`<button type="button" class="btn ${cls}" data-action="${action}">${label}</button>`;
 const tag=(s,special=false)=>`<span class="pill${special?' special':''}">${safe(s)}</span>`;
 const rect=(title,description,action)=>`<a class="list-row" href="${action}"><span class="row-main"><div class="row-title">${safe(title)}</div><div class="row-desc">${safe(description)}</div></span>${ic('chevron')}</a>`;
-const nav=[['today','Today','home'],['practice','Practice','play'],['songs','Songs','music'],['drills','Drills','library'],['references','References','book'],['progress','Progress','chart']];
+const nav=[['today','Today','home'],['practice','Practice','play'],['songs','Songs','music'],['harmony','ii–V–I Zone','music'],['drills','Drills','library'],['references','References','book'],['progress','Progress','chart']];
 let currentHash='';
 function route(){const parts=decodeURIComponent(location.hash.replace(/^#/,'')||'today').split('/');return {page:parts[0],id:parts.slice(1).join('/')};}
 function setRoute(r){if(location.hash==='#'+r){render();return;}location.hash=r;}
@@ -29,12 +34,12 @@ function latestSong(songId){return state.records.filter(r=>r.kind==='song'&&r.pa
 function todayKey(){return state.settings.selectedKey==='auto'?KEYS[countSessions()%KEYS.length]:state.settings.selectedKey;}
 function showToast(msg){const el=$('toast');if(!el)return;clearTimeout(toastTimeout);el.textContent=msg;el.className='visible';toastTimeout=setTimeout(()=>{el.className='';},3200);}
 const cloud=new CloudSync({state,onUpdate:()=>render(),onStatus:(m,k)=>{cloudMessage=m;cloudKind=k;const msg=$('cloud-status');if(msg){msg.textContent=m;msg.className='status '+k;}const side=$('sidebar-status');if(side){side.textContent=m;}}});
-function shell(content){const r=route(),active=['today','practice','songs','drills','references','progress'].includes(r.page)?r.page:(r.page==='drill'?'drills':r.page==='song'?'songs':r.page==='reference'?'references':'today');
+function shell(content){const r=route(),active=['today','practice','songs','harmony','drills','references','progress'].includes(r.page)?r.page:(r.page==='drill'?'drills':r.page==='song'?'songs':r.page==='reference'?'references':'today');
  const navHTML=nav.map(([href,text,icon])=>`<a href="#${href}" class="nav-item ${active===href?'active':''}" ${active===href?'aria-current="page"':''}><span class="nav-ic">${ic(icon)}</span>${text}</a>`).join('');
  return `<div class="shell"><aside class="sidebar"><a href="#today" class="brand route-link"><span class="brand-mark">${ic('music')}</span><div><div class="brand-title">Guitar Practice Lab</div><div class="brand-small">Music · Precision · Flow</div></div></a><nav class="nav" aria-label="Main navigation">${navHTML}</nav><div class="side-bottom"><div class="small"><span class="sync-pip ${cloud.user?'good':''}"></span>Practice data</div><p id="sidebar-status">${safe(cloudMessage)}</p><a href="#settings">${ic('settings')} &nbsp; Settings & cloud</a></div></aside><div class="main-wrap"><div class="topbar"><div><span class="eyebrow">Practice Workspace</span></div><div class="top-right">${state.active?tag('Session in progress',true):''}<a href="#releases" class="pill release-link" title="View release notes">v${APP_VERSION} · What's new</a><a class="btn small ghost" href="#settings">${ic('settings')}<span class="desktop-only">Settings</span></a></div></div><main class="page" id="main-content">${content}</main></div></div>`;
 }
 function render(){document.body.dataset.theme=state.settings.theme;const r=route();let html='';
- switch(r.page){case 'today':html=renderToday();break;case 'practice':html=renderPractice();break;case 'drills':html=renderDrills();break;case 'drill':html=renderDrillDetail(r.id);break;case 'songs':html=renderSongs();break;case 'song':html=renderSongDetail(r.id);break;case 'references':html=renderReferences();break;case 'reference':html=renderReferenceDetail(r.id);break;case 'progress':html=renderProgress();break;case 'releases':html=renderReleases();break;case 'settings':html=renderSettings();break;default:html=renderToday();}
+ switch(r.page){case 'today':html=renderToday();break;case 'practice':html=renderPractice();break;case 'drills':html=renderDrills();break;case 'drill':html=renderDrillDetail(r.id);break;case 'songs':html=renderSongs();break;case 'harmony':html=renderHarmony();break;case 'song':html=renderSongDetail(r.id);break;case 'references':html=renderReferences();break;case 'reference':html=renderReferenceDetail(r.id);break;case 'progress':html=renderProgress();break;case 'releases':html=renderReleases();break;case 'settings':html=renderSettings();break;default:html=renderToday();}
  $('app').innerHTML=shell(html);updateClock();}
 function queueOverview(s){return `<div class="list">${s.entries.map((entry,i)=>{const d=DRILL_BY_ID[entry.id];return `<div class="step-row ${entry.done?'done':''}"><div class="step-n">${entry.done?'✓':i+1}</div><div class="step-info"><div class="step-name">${safe(d?.title||'Song practice')}</div><div class="step-min">${safe(d?.category?categoryTitle(d.category):'Repertoire')} · ${entry.minutes} min</div></div><span class="small muted">${entry.minutes}:00</span></div>`;}).join('')}</div>`;}
 function renderToday(){const complete=countSessions(),recent=lastSeven(),sessions=recent.filter(r=>r.kind==='session'),minutes=sessions.reduce((x,s)=>x+(Number(s.payload?.durationMinutes)||0),0),pctScores=recent.filter(r=>r.kind==='drill').map(r=>validRatingPercent(r.payload)).filter(n=>n!==null),avgQuality=pctScores.length?Math.round(pctScores.reduce((a,b)=>a+b,0)/pctScores.length):null;
@@ -107,6 +112,78 @@ function renderDrillDetail(id){const d=DRILL_BY_ID[id];if(!d)return `${pageHeade
  const key=todayKey(),notes=buildExample(d.kind,key,d.quality||'maj7',d.octaves||2,state.settings.position),rec=(d.reference||[]).map(ref=>REFERENCE_BY_ID[ref]).filter(Boolean),isChord=d.kind==='chords';
  return `${pageHeader(categoryTitle(d.category),d.title,d.summary,btn(`start-free:${d.id}`,`${ic('play')} practice this drill`,'primary'))}
  <div class="grid-main"><div class="card"><div class="card-header"><h2>Exercise diagram</h2>${tag(key,true)}</div>${isChord?chordBlocks(key):!notes.length?`<div class="alert">A full three-octave path is not available in this key on a 22-fret standard-tuned guitar. Try another key or a two-octave arpeggio.</div>`:`<div class="eyebrow">Tab · D = down, U = up</div><div class="diagram-viewport" style="margin-top:10px">${renderTabSvg(notes)}</div><div class="eyebrow" style="margin-top:20px">Fretboard</div><div class="diagram-viewport" style="margin-top:10px">${renderFretboardSvg(notes,-1,'note')}</div>`}${d.octaves===3?`<p class="alert">Three-octave lines can reach very high frets in some keys. Reduce the range or change key if your guitar or neck comfort makes this impractical.</p>`:''}<div class="divider"></div><h3>How to practice</h3><ol class="instruction-list">${d.instructions.map(i=>`<li>${safe(i)}</li>`).join('')}</ol></div><aside class="card"><h3>References</h3>${rec.map(r=>rect(r.title,r.takeaway,'#reference/'+r.id)).join('')||'<p>No specific reference linked.</p>'}<div class="divider"></div><div class="buttons">${btn(`start-free:${d.id}`,'Start solo practice','primary full')}<a class="btn full ghost" href="#drills">Back to library</a></div></aside></div>`;
+}
+function renderHarmony(){
+ const plan=buildTwoFiveOne(harmonySettings.key,harmonySettings.mode);
+ const options=KEYS.map(key=>'<option value="'+safe(key)+'" '+(harmonySettings.key===key?'selected':'')+'>'+safe(key)+'</option>').join('');
+ const bpmOptions=[1,2,4].map(n=>'<option value="'+n+'" '+(Number(harmonySettings.barsPerChord)===n?'selected':'')+'>'+n+' bar'+(n===1?'':'s')+' per chord</option>').join('');
+ const volOptions=[[.25,'Soft'],[.55,'Medium'],[.8,'Loud']].map(v=>'<option value="'+v[0]+'" '+(Number(harmonySettings.volume)===v[0]?'selected':'')+'>'+v[1]+'</option>').join('');
+ const cards=plan.chords.map((chord,i)=>'<div class="harmony-chord" data-harmony-card="'+i+'"><div class="eyebrow">'+safe(chord.role)+'</div><h2>'+safe(chord.label)+'</h2><div class="small muted">Guide tones: '+safe(chord.guideTones.join(' · '))+'</div></div>').join('');
+ const scores=Array.from({length:11},(_,i)=>i*10).map(score=>'<option value="'+score+'" '+(score===80?'selected':'')+'>'+score+'%</option>').join('');
+ return pageHeader('Jazz harmony','ii–V–I Practice Zone','Hear major and minor progressions, practise guide tones and improvise with a piano-style chord pulse.')+
+ '<div class="harmony-shell"><div class="card"><div class="card-header"><div><div class="eyebrow">No recordings, no subscription</div><h2>Chord accompaniment</h2></div>'+tag('Local audio',true)+'</div>'+
+ '<div class="form-row" style="margin-top:12px"><div class="form-group"><label>Key</label><select data-harmony-setting="key">'+options+'</select></div>'+
+ '<div class="form-group"><label>Harmony</label><select data-harmony-setting="mode"><option value="major" '+(harmonySettings.mode==='major'?'selected':'')+'>Major ii–V–I</option><option value="minor" '+(harmonySettings.mode==='minor'?'selected':'')+'>Minor iiø–V–i</option></select></div>'+
+ '<div class="form-group"><label>Chord duration</label><select data-harmony-setting="barsPerChord">'+bpmOptions+'</select></div></div>'+
+ '<div class="harmony-transport"><div><div class="eyebrow">Playback tempo</div><div class="tempo"><span id="harmony-bpm">'+harmonySettings.tempo+'</span> <span class="small muted">BPM</span></div></div>'+
+ '<div class="buttons">'+btn('harmony-slower','−5 BPM','small')+btn('harmony-play','Play chords','primary')+btn('harmony-stop','Stop sound')+btn('harmony-faster','+5 BPM','small')+'</div></div>'+
+ '<div class="form-row" style="margin-top:12px"><div class="form-group"><label>Chord volume</label><select data-harmony-setting="volume">'+volOptions+'</select></div>'+
+ '<label class="form-group harmony-click"><span>Rhythmic click</span><input type="checkbox" data-harmony-setting="click" '+(harmonySettings.click?'checked':'')+' /></label></div>'+
+ '<p id="harmony-status" class="small muted" role="status">Ready. Press Play to hear the chords.</p>'+
+ '<div class="harmony-chord-grid">'+cards+'</div>'+
+ '<div class="harmony-bar"><span id="harmony-position">Waiting for playback</span><span id="harmony-next"></span></div>'+
+ '<p class="footnote">The synthetic, electric-piano-inspired sound is generated in this browser. It is not a sampled Fender Rhodes instrument. Start audio with a click. Change key or mode to reset the progression. The backing click uses the same audio clock as the chords.</p></div>'+
+ '<aside class="card"><div class="eyebrow">Practice this progression</div><h2 style="margin:10px 0 14px">One chord at a time</h2>'+
+ '<ol class="instruction-list"><li><strong>Listen:</strong> hear each chord change before touching the fretboard.</li>'+
+ '<li><strong>Guide tones:</strong> play the 3rd and 7th over ii and V, then resolve to a stable tone on I or i.</li>'+
+ '<li><strong>Phrase:</strong> improvise a two-bar question and answer; land deliberately on a chord tone.</li>'+
+ '<li><strong>Switch:</strong> try the other mode in the same key, then work around the circle of fourths.</li></ol>'+
+ '<div class="divider"></div><h3>Record this attempt</h3>'+
+ '<div class="form-group"><label>Execution quality</label><select id="harmony-score">'+scores+'</select></div>'+
+ '<div class="form-group" style="margin-top:12px"><label>What went well / needs work?</label><textarea id="harmony-notes" maxlength="600" rows="3" placeholder="e.g. G7 third was solid; work on Dm7♭5 voice leading"></textarea></div>'+
+ '<div class="buttons">'+btn('harmony-log','Save practice note','primary full')+'</div>'+
+ '<p class="footnote">Saves a small progress record using your existing private practice storage and cloud sync. No audio is uploaded.</p></aside></div>';
+}
+function updateHarmonyUI(){
+ const here=harmonyPosition,play=$('harmony-status'),label=$('harmony-position'),next=$('harmony-next');
+ if(!play)return;
+ const active=harmonyBacking.playing&&here;
+ play.textContent=active?'Playing '+here.chord.label+' · loop '+here.loop:'Stopped. Press Play to hear the chords.';
+ if(label)label.textContent=active?'Bar '+here.barNumber+' · '+here.chord.label+' · bar '+here.barInChord+' of '+harmonyBacking.barsPerChord:'Waiting for playback';
+ const plan=buildTwoFiveOne(harmonySettings.key,harmonySettings.mode);
+ if(next)next.textContent=active?'Next: '+plan.chords[(here.chordIndex+1)%3].label:'';
+ document.querySelectorAll('[data-harmony-card]').forEach(element=>element.classList.toggle('current',active&&Number(element.dataset.harmonyCard)===here.chordIndex));
+}
+async function toggleHarmonyPlayback(){
+ if(harmonyBacking.playing){stopHarmonyPlayback();return;}
+ try{
+  metronome.stop();
+  const plan=buildTwoFiveOne(harmonySettings.key,harmonySettings.mode);
+  await harmonyBacking.start(plan,harmonySettings);
+  harmonyStarted=Date.now();
+  updateHarmonyUI();
+ }catch(error){showToast('Chord playback unavailable: '+error.message);}
+}
+function stopHarmonyPlayback(){
+ if(harmonyStarted){harmonyElapsed+=Date.now()-harmonyStarted;harmonyStarted=0;}
+ harmonyBacking.stop();updateHarmonyUI();
+}
+function harmonyTempoChange(delta){
+ harmonySettings.tempo=clampHarmonyTempo(Number(harmonySettings.tempo)+delta);
+ state.settings.harmony={...harmonySettings};saveState(state);
+ harmonyBacking.setTempo(harmonySettings.tempo);
+ const label=$('harmony-bpm');if(label)label.textContent=harmonySettings.tempo;
+}
+function logHarmonyAttempt(){
+ const score=Number($('harmony-score')?.value||80),notes=$('harmony-notes')?.value?.trim().slice(0,600)||'';
+ if(!Number.isInteger(score)||score<0||score>100||score%10!==0){showToast('Choose a rating in 10% steps.');return;}
+ const playedSeconds=Math.max(0,Math.round((harmonyElapsed+(harmonyStarted?Date.now()-harmonyStarted:0))/1000));
+ addRecord(state,'drill',{drillId:'harmony-251',key:harmonySettings.key,mode:'harmony',harmonyMode:harmonySettings.mode,
+  bpm:harmonySettings.tempo,barsPerChord:harmonySettings.barsPerChord,ratingPct:score,seconds:playedSeconds,issue:'none',notes});
+ harmonyElapsed=0;if(harmonyStarted)harmonyStarted=Date.now();
+ cloud.sync();
+ const entry=$('harmony-notes');if(entry)entry.value='';
+ showToast('ii–V–I practice saved. Progress is available under Progress.');
 }
 function renderSongs(){const logged=state.records.filter(r=>r.kind==='song');return `${pageHeader('Performance repertoire','Songs & setlists','Your Logos-Motive setlist, with rehearsal priorities and performance notes.',tag(SONGS.length+' songs'))}
  <div class="grid-main"><div class="list">${SONGS.map((s,i)=>{const last=latestSong(s.id);return `<a class="song-item" href="#song/${s.id}"><div class="song-n">${String(i+1).padStart(2,'0')}</div><div class="song-copy"><div class="song-title">${safe(s.title)}</div><p>${safe(s.focus)}</p></div><span class="badge">${last?safe(last.readiness||'Tracking'):'Not tracked'}</span>${ic('chevron')}</a>`;}).join('')}</div><aside class="card"><div class="eyebrow">Repertoire tracking</div><h2 style="margin-top:12px">From drill to performance</h2><p>Give each song a working key, tempo and readiness status. Keep a short note about the next musical problem to solve.</p><div class="divider"></div><div class="metric"><div class="label">Songs with rehearsal logs</div><div class="number">${new Set(logged.map(r=>r.payload?.songId)).size} / ${SONGS.length}</div></div><p class="footnote">Arrangements can use different keys, tempos and song structures. The app does not assume a recording's key is yours.</p></aside></div>`;}
@@ -213,6 +290,9 @@ function setRatingPercent(value){
  if(save)save.textContent='Save '+ratingPercent+'% & continue';
 }
 const actions={
+ 'harmony-play':toggleHarmonyPlayback,'harmony-stop':stopHarmonyPlayback,
+ 'harmony-slower':()=>harmonyTempoChange(-5),'harmony-faster':()=>harmonyTempoChange(5),
+ 'harmony-log':logHarmonyAttempt,
  'start-session':()=>startSession(), 'resume-session':()=>setRoute('practice'),'toggle-timer':toggleTimer,'tempo-up':()=>changeTempo(5),'tempo-down':()=>changeTempo(-5),
  'metro-toggle':async()=>{await metronome.toggle();const label=$('metro-label');if(label)label.textContent=metronome.playing?'Stop click':'Metronome';},
  'rating-open':()=>{pauseTimer();ratingPercent=80;showRating=true;render();},'rating-cancel':()=>{showRating=false;render();},
@@ -232,14 +312,21 @@ const actions={
  'cloud-sync':async()=>{if(!cloud.client)await cloud.init();if(!cloud.user){showToast('Sign in before syncing.');return;}await cloud.sync();render();}
 };
 document.addEventListener('click',async ev=>{const btn=ev.target.closest('[data-action]');if(!btn)return;ev.preventDefault();const name=btn.dataset.action;if(name?.startsWith('start-free:'))return startSession(true,name.slice(11));if(name?.startsWith('song-focus:'))return startSession(true,null,name.slice(11));if(name?.startsWith('save-song:'))return saveSong(name.slice(10));if(name?.startsWith('rating-set:'))return setRatingPercent(Number(name.slice(11)));const handler=actions[name];if(handler){try{await handler();}catch(error){console.error(error);showToast('Action failed: '+error.message);}}});
-document.addEventListener('change',async ev=>{const el=ev.target;if(el.dataset.setting){let value=el.value;if(el.dataset.setting==='selectedMode'&&state.active)return;state.settings[el.dataset.setting]=value;saveState(state);if(el.dataset.setting==='theme')document.body.dataset.theme=value;render();if(['subdivision','meter'].includes(el.dataset.setting)&&metronome.playing)metronome.stop();}
+document.addEventListener('change',async ev=>{const el=ev.target;
+ if(el.dataset.harmonySetting){const key=el.dataset.harmonySetting;
+  harmonySettings[key]=key==='click'?el.checked:key==='barsPerChord'?Number(el.value):key==='volume'?Number(el.value):el.value;
+  state.settings.harmony={...harmonySettings};saveState(state);
+  if(key==='volume'){harmonyBacking.setVolume(harmonySettings.volume);return;}
+  if(key==='click'){harmonyBacking.setClick(harmonySettings.click);return;}
+  stopHarmonyPlayback();render();return;
+ }if(el.dataset.setting){let value=el.value;if(el.dataset.setting==='selectedMode'&&state.active)return;state.settings[el.dataset.setting]=value;saveState(state);if(el.dataset.setting==='theme')document.body.dataset.theme=value;render();if(['subdivision','meter'].includes(el.dataset.setting)&&metronome.playing)metronome.stop();}
  if(el.id==='import-file'&&el.files?.[0]){try{const file=el.files[0];if(file.size>25_000_000)throw Error('File is larger than 25 MB.');const json=JSON.parse(await file.text());const added=importedSnapshot(state,json);showToast(`${added} records imported. Existing records preserved.`);cloud.sync();render();}catch(error){showToast('Import failed: '+error.message);}}
  if(el.id==='drill-category')filterDrills();});
 document.addEventListener('input',ev=>{if(ev.target.id==='drill-search')filterDrills();if(ev.target.id==='session-notes'&&state.active){state.active.notes=ev.target.value;saveState(state);}});
 function filterDrills(){const q=($('drill-search')?.value||'').trim().toLowerCase(),cat=$('drill-category')?.value||'all';document.querySelectorAll('.drill-search-row').forEach(row=>{row.classList.toggle('hide',!row.dataset.search.includes(q)||(cat!=='all'&&row.dataset.category!==cat));});}
-window.addEventListener('hashchange',()=>{showRating=false;diagramStep=-1;render();});
-document.addEventListener('visibilitychange',()=>{if(document.hidden){pauseTimer();metronome.stop();}});
-window.addEventListener('beforeunload',()=>{pauseTimer();metronome.stop();});
+window.addEventListener('hashchange',()=>{if(route().page!=='harmony')stopHarmonyPlayback();showRating=false;diagramStep=-1;render();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){pauseTimer();metronome.stop();stopHarmonyPlayback();}});
+window.addEventListener('beforeunload',()=>{pauseTimer();metronome.stop();stopHarmonyPlayback();});
 setInterval(()=>{updateClock();if(state.active?.startedAt)saveState(state);},1000);
 setInterval(()=>{if(cloud.user&&!document.hidden)cloud.sync();},120000);
 render();if(cloud.configured)cloud.init();
