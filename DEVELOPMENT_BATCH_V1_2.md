@@ -35,3 +35,20 @@ For backing audio and improvisation (#4/#5/#7/#10), prefer a later self-containe
 The GitHub Actions collector already runs independently from ChatGPT and retains Issues. A ChatGPT scheduled development task has switched itself off on prior executions, with **no execution failure reason exposed** through the available task status. Do not treat its hourly schedule as reliable automatic coding. Each release can still be processed on demand in chat; a truly unattended coding agent needs a separately configured, durable agent runner and permissions. Preserve human approval for the final PR.
 
 Status labels in this document describe **planning state**, not GitHub issue closure. Close individual Issues only when their acceptance criteria are actually met, usually after the merged release ships.
+
+## Additional audio and repertoire features — NOT part of PR #12
+
+New requests were assessed after merging the GitHub-native dashboard PR #14. They require separate, independently testable implementations:
+
+| Issue | Feature | Proposed / current PR |
+| --- | --- | --- |
+| [#15](https://github.com/GitBarton/guitar-practice-lab/issues/15) | Locally generated electric-piano-style chords, shared audio clock | [Draft #19](https://github.com/GitBarton/guitar-practice-lab/pull/19): first playable prototype |
+| [#16](https://github.com/GitBarton/guitar-practice-lab/issues/16) | Dedicated 12-key major/minor ii–V–I zone, live chord visualization, practice logging | [Draft #19](https://github.com/GitBarton/guitar-practice-lab/pull/19): initial version |
+| [#17](https://github.com/GitBarton/guitar-practice-lab/issues/17) | Local MP3/WAV Practice with Track, A–B looping and transport for songs | [Draft #20](https://github.com/GitBarton/guitar-practice-lab/pull/20) |
+| [#18](https://github.com/GitBarton/guitar-practice-lab/issues/18) | Further Barry Harris sixth-diminished, dominant bebop and ii–V–I exercises | Backlog; thorough musical validation required |
+
+**Integration sequence:** Keep this PR #12 focused on reliable drill staging and G-string vibrato. Validate it on PC, then merge with owner approval. Reconcile/rebase the newer audio PRs against the resulting `main` branch **one at a time**, including a coherent combined start/stop audio policy, offline cache assets, shared file changes, updated in-app version/changelog and browser tests. Do not merge all three independent PR branches blindly.
+
+**Music and audio limitations:** Both audio PRs are early implementations, not finished high-fidelity products. The synthetic chord engine needs listening and synchronization review; imported MP3/WAV files stay local and are not automatically persistent. Neither should add secrets or upload track binaries. If a user requests richer comping and accompaniment inside all drills, follow up separately rather than silently changing every drill's audio behavior.
+
+**Checklist for PR #12 finalization:** verify stage navigation does not reset the current practice timer/metronome; ensure diagrams for four-finger G-string vibrato, double-stops and octaves actually correspond to instructions; test 75/100/125% PC zoom; update `APP_VERSION`, `CHANGELOG.md`, service-worker cache name, `package.json` and version assertions together at release time.
