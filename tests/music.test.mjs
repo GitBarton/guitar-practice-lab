@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {buildNotePath,INTERVALS,renderTabSvg,renderFretboardSvg,shellShapes,progressionFor,enclosureGuide,enclosureInstructions,keyPc,buildExample} from '../music.js';
-import {makeSession,KEYS,DRILLS,SONGS} from '../data.js';
+import {makeSession,KEYS,DRILLS,DRILL_BY_ID,SONGS,stageCount,currentStage,clampedStageIndex} from '../data.js';
 test('twelve keys in cycle of fourths',()=>{assert.deepEqual(KEYS,['C','F','Bb','Eb','Ab','Db','Gb','B','E','A','D','G']);for(let i=0;i<12;i++)assert.equal(makeSession(i).key,KEYS[i]);});
 test('chord formulas',()=>{assert.deepEqual(INTERVALS.maj7,[0,4,7,11]);assert.deepEqual(INTERVALS.m7b5,[0,3,6,10]);assert.deepEqual(INTERVALS.dim7,[0,3,6,9]);assert.deepEqual(INTERVALS.aug,[0,4,8]);assert.deepEqual(INTERVALS.dim,[0,3,6]);});
 test('2 octaves end two octaves above root and have valid fret positions',()=>{for(const key of KEYS)for(const q of ['major','minor','dim','maj7','m7','7','m7b5','dim7','aug','pentMajor','pentMinor']){const path=buildNotePath(key,q,2);assert.equal(path.length,INTERVALS[q].length*2+1,key+' '+q);assert.equal(path.at(-1).midi-path[0].midi,24);for(const n of path){assert.ok(n.fret>=0&&n.fret<=22,key+' '+q);assert.ok(n.string>=0&&n.string<=5);}}});
@@ -28,4 +28,41 @@ test('C enclosure describes Bb clearly, not A sharp',()=>{
  const explanation=enclosureInstructions('C').join(' ');
  assert.match(explanation,/Bb/);
  assert.doesNotMatch(explanation,/A#/);
+});
+
+test('selected drills have correctly sized, human-readable, nonempty practice stages',()=>{
+ for(const id of ['picking-reset','penta-major','muting-vibrato-g']){
+  const d=DRILL_BY_ID[id];
+  assert.ok(d,id+' exists');
+  assert.ok(stageCount(d)>=4,id+' has at least four stages');
+  assert.equal(currentStage(d,-500),d.stages[0]);
+  assert.equal(currentStage(d,999),d.stages[d.stages.length-1]);
+  assert.equal(clampedStageIndex(d,2),2);
+  for(const stage of d.stages){
+   assert.ok(stage.title?.length>4,id+' stage title');
+   assert.ok(stage.focus?.length>10,id+' stage objective');
+   assert.ok(stage.instructions?.length>=2,id+' stage instructions');
+   assert.ok(buildExample(stage.exampleKind||d.kind).length>0,id+' stage diagram exists');
+  }
+ }
+ for(const d of DRILLS.filter(d=>!d.stages))assert.equal(stageCount(d),0);
+});
+test('G-string vibrato diagram shows playable, isolated G string positions only',()=>{
+ const vibrato=DRILL_BY_ID['muting-vibrato-g'];
+ assert.equal(vibrato.stages.length,5);
+ const notes=buildExample('vibrato-g');
+ assert.ok(notes.every(n=>n.string===2),'all notes belong to the G string');
+ assert.deepEqual(notes.slice(0,4).map(n=>[n.fret,n.name]),[[5,'C4'],[6,'Db4'],[7,'D4'],[8,'Eb4']]);
+ assert.deepEqual(notes.slice(4).map(n=>n.fret),[5,7,5]);
+ assert.deepEqual(notes.slice(4).map(n=>n.pick),['D','H','P']);
+ assert.deepEqual(vibrato.stages.slice(0,4).map(s=>s.activeNote),[0,1,2,3]);
+ assert.ok(vibrato.stages[4].instructions.join(' ').includes('pull off'));
+});
+test('double stops and octave-pair diagrams use the named physical strings',()=>{
+ const ds=buildExample('double-stop');
+ assert.deepEqual(ds.map(n=>[n.string,n.fret]),[[2,5],[1,5]]);
+ const oct=buildExample('octave');
+ assert.deepEqual(oct.map(n=>[n.string,n.fret]),[[5,8],[3,10]]);
+ assert.ok(renderTabSvg(ds).includes('5'));
+ assert.ok(renderFretboardSvg(oct).includes('C3'));
 });
