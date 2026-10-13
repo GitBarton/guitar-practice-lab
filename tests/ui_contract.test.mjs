@@ -24,3 +24,15 @@ test('rating control and release timeline have responsive styles and changed off
  assert.match(css,/@media\(max-width:410px\)/);
  assert.match(sw,/gpl-app-v1\.1\.0/);
 });
+
+test('changing BPM keeps an active metronome running',()=>{
+ const start=app.indexOf('function changeTempo(n){');
+ assert.ok(start>=0,'changeTempo should exist');
+ const changeTempo=app.slice(start,app.indexOf('function pauseTimer()',start));
+ assert.match(changeTempo,/state\.settings\.defaultBpm=bpm/);
+ assert.doesNotMatch(changeTempo,/metronome\.stop\(\)/);
+ const schedulerStart=app.indexOf(' schedule(){');
+ assert.ok(schedulerStart>=0,'metronome scheduler should exist');
+ const schedule=app.slice(schedulerStart,app.indexOf(' stop(){',schedulerStart));
+ assert.match(schedule,/state\.settings\.defaultBpm/,'audio scheduler must dynamically use updated BPM');
+});
