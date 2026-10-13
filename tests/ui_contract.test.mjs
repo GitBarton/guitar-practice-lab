@@ -22,7 +22,8 @@ test('rating control and release timeline have responsive styles and changed off
  assert.match(css,/\.rating-scale/);
  assert.match(css,/\.release-timeline/);
  assert.match(css,/@media\(max-width:410px\)/);
- assert.match(sw,/gpl-app-v1\.1\.0/);
+ assert.match(sw,/const CACHE='gpl-app-[^']+'/);
+ assert.match(sw,/'\.\/song-audio\.js'/);
 });
 
 test('changing BPM keeps an active metronome running',()=>{

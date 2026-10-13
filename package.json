@@ -5,6 +5,6 @@
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "check": "node --check app.js && node --check music.js && node --check data.js && node --check storage.js"
+    "check": "node --check app.js && node --check music.js && node --check data.js && node --check storage.js && node --check song-audio.js"
   }
 }
