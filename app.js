@@ -1,5 +1,6 @@
 import {APP_VERSION,KEYS,CATEGORIES,SONGS,DRILLS,DRILL_BY_ID,REFERENCES,REFERENCE_BY_ID,RELEASE_NOTES,makeSession} from './data.js';
 import {buildExample,renderTabSvg,renderFretboardSvg,shellShapes,chordDiagramSvg,progressionFor,escapeHtml as e,pitchName,keyPc,INTERVALS,buildNotePath} from './music.js';
+import {SongTrackPlayer,songClock} from './song-audio.js';
 import {buildTwoFiveOne,clampHarmonyTempo} from './harmony.js';
 import {ChordBacking} from './backing-audio.js';
 import {loadState,saveState,addRecord,uid,weeklyReport,downloadText,exportCsv,importedSnapshot,validRatingPercent,isHighQualityDrill,ratingDisplay,CloudSync} from './storage.js';
@@ -11,6 +12,7 @@ if((!state.cloud?.url||!state.cloud?.key)&&(publishedCloud.supabaseUrl||publishe
  saveState(state);
 }
 document.body.dataset.theme=state.settings.theme;
+const songTrackPlayer=new SongTrackPlayer(()=>updateSongTrackUI());
 const harmonySettings=Object.assign({key:'C',mode:'major',tempo:72,barsPerChord:2,volume:.55,click:false},state.settings.harmony||{});
 let harmonyPosition=null,harmonyStarted=0,harmonyElapsed=0;
 const harmonyBacking=new ChordBacking(position=>{harmonyPosition=position;updateHarmonyUI();});
@@ -40,7 +42,7 @@ function shell(content){const r=route(),active=['today','practice','songs','harm
 }
 function render(){document.body.dataset.theme=state.settings.theme;const r=route();let html='';
  switch(r.page){case 'today':html=renderToday();break;case 'practice':html=renderPractice();break;case 'drills':html=renderDrills();break;case 'drill':html=renderDrillDetail(r.id);break;case 'songs':html=renderSongs();break;case 'harmony':html=renderHarmony();break;case 'song':html=renderSongDetail(r.id);break;case 'references':html=renderReferences();break;case 'reference':html=renderReferenceDetail(r.id);break;case 'progress':html=renderProgress();break;case 'releases':html=renderReleases();break;case 'settings':html=renderSettings();break;default:html=renderToday();}
- $('app').innerHTML=shell(html);updateClock();}
+ $('app').innerHTML=shell(html);updateClock();updateSongTrackUI();}
 function queueOverview(s){return `<div class="list">${s.entries.map((entry,i)=>{const d=DRILL_BY_ID[entry.id];return `<div class="step-row ${entry.done?'done':''}"><div class="step-n">${entry.done?'✓':i+1}</div><div class="step-info"><div class="step-name">${safe(d?.title||'Song practice')}</div><div class="step-min">${safe(d?.category?categoryTitle(d.category):'Repertoire')} · ${entry.minutes} min</div></div><span class="small muted">${entry.minutes}:00</span></div>`;}).join('')}</div>`;}
 function renderToday(){const complete=countSessions(),recent=lastSeven(),sessions=recent.filter(r=>r.kind==='session'),minutes=sessions.reduce((x,s)=>x+(Number(s.payload?.durationMinutes)||0),0),pctScores=recent.filter(r=>r.kind==='drill').map(r=>validRatingPercent(r.payload)).filter(n=>n!==null),avgQuality=pctScores.length?Math.round(pctScores.reduce((a,b)=>a+b,0)/pctScores.length):null;
  const mode=state.settings.selectedMode,preview=makeSession(complete,mode,state.settings.selectedSong);if(state.settings.selectedKey!=='auto')preview.key=state.settings.selectedKey;
@@ -70,7 +72,7 @@ function renderPractice(){if(!state.active)return `${pageHeader('Practice','Acti
  <div class="card empty">No active session. Choose a 45-minute plan on Today, or open a single drill from the library.<div class="buttons" style="justify-content:center;margin-top:16px"><a href="#today" class="btn primary">Choose a session</a><a href="#drills" class="btn">Browse drills</a></div></div>`;
  const a=state.active,entry=currentDrill();if(!entry)return renderEndSession();const d=DRILL_BY_ID[entry.id],isSong=entry.id==='song',song=SONGS.find(s=>s.id===a.songId)||SONGS[0];const time=Math.max(0,Math.ceil(entry.minutes*60-clockMs()/1000));const isChords=d?.kind==='chords',isMusical=['ii-v-i','enclosure','approach'].includes(d?.kind);
  const notes=d?buildExample(d.kind,a.key,d.quality||'maj7',d.octaves||2,state.settings.position):[];
- const diagram=!isSong&&!isChords&&!notes.length?`<div class="alert">This exact range does not fit a 22-fret standard-tuned guitar in ${safe(a.key)}. Choose a different key or use a two-octave drill.</div>`:isSong?`<div class="callout"><strong>${safe(song.title)}</strong><p>${safe(song.focus)}</p><p>${safe(song.notes)}</p></div>`:isChords?chordBlocks(a.key):`${progressSvg(notes)}<div class="color-legend" style="margin-top:10px"><span><span class="dot root"></span>Root/first note</span><span><span class="dot"></span>Chord tone</span><span><span class="dot active"></span>Selected note</span></div>`;
+ const diagram=!isSong&&!isChords&&!notes.length?`<div class="alert">This exact range does not fit a 22-fret standard-tuned guitar in ${safe(a.key)}. Choose a different key or use a two-octave drill.</div>`:isSong?`<div class="callout"><strong>${safe(song.title)}</strong><p>${safe(song.focus)}</p><p>${safe(song.notes)}</p></div>${renderSongTrackPanel(song.id)}`:isChords?chordBlocks(a.key):`${progressSvg(notes)}<div class="color-legend" style="margin-top:10px"><span><span class="dot root"></span>Root/first note</span><span><span class="dot"></span>Chord tone</span><span><span class="dot active"></span>Selected note</span></div>`;
  const previewTime=`<div class="control-panel"><div style="flex:1;min-width:120px"><div class="eyebrow">Tempo</div><div class="tempo"><span id="current-bpm">${state.settings.defaultBpm}</span><span class="muted" style="font-size:14px"> BPM</span></div></div><div style="text-align:right"><div class="eyebrow">Remaining</div><div class="timer" id="practice-clock">${formatSeconds(time)}</div></div></div><div class="meter" style="margin:13px 0 18px"><div id="time-bar" style="width:${Math.min(100,clockMs()/(entry.minutes*600)*100)}%"></div></div>
  <p id="timer-finished" role="status" class="timer-finished" ${a.timerNotifiedFor===a.position?'':'hidden'}>Time's up. Finish and rate this exercise when ready.</p>
  <div class="buttons">${btn('tempo-down',`${ic('minus')} 5 BPM`)}${btn('toggle-timer',`<span id="timer-running">${a.startedAt?'Pause timer':'Start timer'}</span>`,'primary')}${btn('tempo-up',`${ic('plus')} 5 BPM`)}${btn('metro-toggle',`${ic('headphones')} <span id="metro-label">${metronome.playing?'Stop click':'Metronome'}</span>`)} </div><div class="form-row" style="margin-top:14px"><div class="form-group"><label>Subdivision</label><select data-setting="subdivision"><option value="quarter" ${state.settings.subdivision==='quarter'?'selected':''}>Quarter-note pulse</option><option value="swing" ${state.settings.subdivision==='swing'?'selected':''}>Swung eighths</option><option value="triplet" ${state.settings.subdivision==='triplet'?'selected':''}>Triplets</option></select></div><div class="form-group"><label>Meter</label><select data-setting="meter"><option value="4/4" ${state.settings.meter==='4/4'?'selected':''}>4/4</option><option value="6/8" ${state.settings.meter==='6/8'?'selected':''}>6/8 (2 dotted-quarter pulses)</option></select></div></div>`;
@@ -157,7 +159,7 @@ function updateHarmonyUI(){
 async function toggleHarmonyPlayback(){
  if(harmonyBacking.playing){stopHarmonyPlayback();return;}
  try{
-  metronome.stop();
+  metronome.stop();songTrackPlayer.pause();
   const plan=buildTwoFiveOne(harmonySettings.key,harmonySettings.mode);
   await harmonyBacking.start(plan,harmonySettings);
   harmonyStarted=Date.now();
@@ -187,12 +189,43 @@ function logHarmonyAttempt(){
 }
 function renderSongs(){const logged=state.records.filter(r=>r.kind==='song');return `${pageHeader('Performance repertoire','Songs & setlists','Your Logos-Motive setlist, with rehearsal priorities and performance notes.',tag(SONGS.length+' songs'))}
  <div class="grid-main"><div class="list">${SONGS.map((s,i)=>{const last=latestSong(s.id);return `<a class="song-item" href="#song/${s.id}"><div class="song-n">${String(i+1).padStart(2,'0')}</div><div class="song-copy"><div class="song-title">${safe(s.title)}</div><p>${safe(s.focus)}</p></div><span class="badge">${last?safe(last.readiness||'Tracking'):'Not tracked'}</span>${ic('chevron')}</a>`;}).join('')}</div><aside class="card"><div class="eyebrow">Repertoire tracking</div><h2 style="margin-top:12px">From drill to performance</h2><p>Give each song a working key, tempo and readiness status. Keep a short note about the next musical problem to solve.</p><div class="divider"></div><div class="metric"><div class="label">Songs with rehearsal logs</div><div class="number">${new Set(logged.map(r=>r.payload?.songId)).size} / ${SONGS.length}</div></div><p class="footnote">Arrangements can use different keys, tempos and song structures. The app does not assume a recording's key is yours.</p></aside></div>`;}
-function renderSongDetail(id){const song=SONGS.find(s=>s.id===id);if(!song)return `${pageHeader('Repertoire','Song not found','Choose a song from the list.')}`;const prev=latestSong(id)||{};
+function renderSongTrackPanel(songId){
+ const p=songTrackPlayer.snapshot(),loaded=p.loaded&&p.songId===songId;
+ return '<section class="card song-track-panel" aria-label="Practice with your own recording">'+
+ '<div class="card-header"><div><div class="eyebrow">Local track playback</div><h2>Practice with Track</h2></div>'+tag('Private · on this PC')+'</div>'+
+ '<p class="small muted">Choose an MP3 or WAV rehearsal recording, instrumental stem or backing track you own or have permission to use. Nothing is uploaded or synced.</p>'+
+ '<div class="form-group"><label for="song-track-file">Choose audio file (.mp3 or .wav)</label><input class="field" id="song-track-file" type="file" accept=".mp3,.wav,audio/mpeg,audio/wav" /></div>'+
+ '<div id="song-track-file-name" class="small muted" style="margin:9px 0">'+(loaded?'Loaded: '+safe(p.fileName):'No file selected. Choose a track for this song.')+'</div>'+
+ '<div class="track-controls"><div class="buttons">'+btn('track-play','Play','primary')+btn('track-pause','Pause')+btn('track-stop','Stop')+'</div>'+
+ '<div class="track-seek-row"><span id="track-current">'+songClock(loaded?p.current:0)+'</span>'+
+ '<input type="range" id="track-seek" min="0" max="'+Math.max(1,loaded?p.duration:1)+'" step="0.1" value="'+(loaded?p.current:0)+'" aria-label="Seek in track" '+(loaded?'':'disabled')+' />'+
+ '<span id="track-duration">'+songClock(loaded?p.duration:0)+'</span></div>'+
+ '<div class="form-row"><label class="track-checkbox"> <input type="checkbox" id="track-full-loop" data-track-loop '+(loaded&&p.fullLoop?'checked':'')+' /> Loop full track</label>'+
+ '<div class="form-group"><label for="track-volume">Volume</label><input type="range" id="track-volume" min="0" max="1" step="0.1" value="'+p.volume+'" aria-label="Track volume" /></div></div>'+
+ '<div class="buttons">'+btn('track-a','Set loop A','small')+btn('track-b','Set loop B','small')+btn('track-clear-loop','Clear A–B loop','small ghost')+'</div>'+
+ '<p id="track-loop-status" class="small muted">'+(loaded&&p.abStart!==null?'A: '+songClock(p.abStart)+(p.abEnd!==null?' → B: '+songClock(p.abEnd)+' (looping)':' · select B'):'Optional: Set A and B while your track is playing to repeat a difficult passage.')+'</p></div>'+
+ '<p class="footnote">The selected file is available only until you refresh or close this page. Select it again next time. It is not included in JSON backups, GitHub or Supabase. A–B looping may overshoot slightly depending on the browser.</p>'+
+ '<p id="track-error" class="alert" '+(loaded&&p.error?'':'hidden')+'>'+safe(p.error)+'</p></section>';
+}
+function updateSongTrackUI(){
+ const p=songTrackPlayer.snapshot(),r=route();
+ const shown=r.page==='song'&&r.id===p.songId||r.page==='practice'&&state.active?.entries?.[state.active?.position]?.id==='song'&&state.active?.songId===p.songId;
+ if(!shown)return;
+ const t=$('track-current'),duration=$('track-duration'),seek=$('track-seek');
+ if(t)t.textContent=songClock(p.current);
+ if(duration)duration.textContent=songClock(p.duration);
+ if(seek){seek.max=String(Math.max(1,p.duration));seek.value=String(p.current);}
+ const loop=$('track-loop-status');
+ if(loop)loop.textContent=p.abStart===null?'Optional A–B loop: press Set A then Set B during playback.':'A: '+songClock(p.abStart)+(p.abEnd===null?' · select B':' → B: '+songClock(p.abEnd)+' (looping)');
+ const error=$('track-error');
+ if(error){error.hidden=!p.error;error.textContent=p.error;}
+}
+function renderSongDetail(id){const song=SONGS.find(s=>s.id===id);if(!song)return `${pageHeader('Repertoire','Song not found','Choose a song from the list.')}`;const prev=latestSong(id)||{};const trackPanel=renderSongTrackPanel(id);
  const related=DRILL_BY_ID[song.suggested];const entries=state.records.filter(r=>r.kind==='song'&&r.payload?.songId===id).sort((a,b)=>b.created_at.localeCompare(a.created_at));
  return `${pageHeader('Repertoire · Logos-Motive',song.title,song.focus,btn(`song-focus:${id}`,`${ic('play')} practice song · 12 min`,'primary'))}
- <div class="grid-main"><div class="card"><div class="card-header"><h2>Practice profile</h2>${tag(song.meter)}</div><div class="callout">${safe(song.notes)}</div><div class="form-row" style="margin-top:19px"><div class="form-group"><label for="song-key">Your arrangement key (optional)</label><input class="field" id="song-key" maxlength="12" value="${safe(prev.key||'')}" placeholder="e.g. G minor"/></div><div class="form-group"><label for="song-tempo">Target BPM (optional)</label><input class="field" id="song-tempo" inputmode="numeric" type="number" min="30" max="260" value="${safe(prev.tempo||'')}" placeholder="e.g. 65"/></div><div class="form-group"><label for="song-readiness">Performance readiness</label><select id="song-readiness">${[['learning','Learning'],['developing','Developing'],['ready','Performance ready'],['maintaining','Maintenance']].map(([v,label])=>`<option value="${v}" ${(prev.readiness||'learning')===v?'selected':''}>${label}</option>`).join('')}</select></div></div>
+ <div class="grid-main"><div><div class="card"><div class="card-header"><h2>Practice profile</h2>${tag(song.meter)}</div><div class="callout">${safe(song.notes)}</div><div class="form-row" style="margin-top:19px"><div class="form-group"><label for="song-key">Your arrangement key (optional)</label><input class="field" id="song-key" maxlength="12" value="${safe(prev.key||'')}" placeholder="e.g. G minor"/></div><div class="form-group"><label for="song-tempo">Target BPM (optional)</label><input class="field" id="song-tempo" inputmode="numeric" type="number" min="30" max="260" value="${safe(prev.tempo||'')}" placeholder="e.g. 65"/></div><div class="form-group"><label for="song-readiness">Performance readiness</label><select id="song-readiness">${[['learning','Learning'],['developing','Developing'],['ready','Performance ready'],['maintaining','Maintenance']].map(([v,label])=>`<option value="${v}" ${(prev.readiness||'learning')===v?'selected':''}>${label}</option>`).join('')}</select></div></div>
  <h3 style="margin-top:24px">practiced components</h3><div class="song-sections">${[['harmony','Harmony'],['picking','Picking / tone'],['solo','Melody / solo'],['structure','Structure / transitions'],['vocals','Vocal coordination']].map(([id,label])=>`<label><input type="checkbox" data-song-section="${id}" ${(prev.sections||[]).includes(id)?'checked':''}/> ${label}</label>`).join('')}</div>
- <div class="form-group" style="margin-top:19px"><label for="song-notes">What will you work on next?</label><textarea rows="5" id="song-notes" placeholder="A specific passage, transition, technique, or vocal/guitar coordination issue…">${safe(prev.notes||'')}</textarea></div><div class="buttons" style="margin-top:14px">${btn(`save-song:${id}`,`${ic('check')} Save rehearsal notes`,'primary')}<a class="btn ghost" href="#songs">All songs</a></div></div>
+ <div class="form-group" style="margin-top:19px"><label for="song-notes">What will you work on next?</label><textarea rows="5" id="song-notes" placeholder="A specific passage, transition, technique, or vocal/guitar coordination issue…">${safe(prev.notes||'')}</textarea></div><div class="buttons" style="margin-top:14px">${btn(`save-song:${id}`,`${ic('check')} Save rehearsal notes`,'primary')}<a class="btn ghost" href="#songs">All songs</a></div></div>${trackPanel}</div>
  <aside><div class="card"><h3>Connected technique</h3><a class="list-row" href="#drill/${related.id}"><div class="row-main"><div class="row-title">${safe(related.title)}</div><div class="row-desc">${safe(related.summary)}</div></div>${ic('chevron')}</a><div class="divider"></div><h3>Practice history</h3>${entries.length?entries.slice(0,6).map(r=>`<div class="step-row"><div class="step-info"><div class="step-name">${new Date(r.created_at).toLocaleDateString()}</div><div class="step-min">${safe(r.payload.readiness||'Logged')} · ${safe(r.payload.notes||'No note')}</div></div></div>`).join(''):'<p>No rehearsal entries recorded yet.</p>'}</div></aside></div>`;}
 function renderReferences(){return `${pageHeader('Permanent handbook','References & technique','Original notes and diagrams linked directly to your active exercises.',tag(REFERENCES.length+' topics'))}
  <div class="cards">${REFERENCES.map(ref=>`<a class="card route-link" href="#reference/${ref.id}" style="display:block"><div class="eyebrow">${safe(ref.category)}</div><h2 style="margin-top:12px">${safe(ref.title)}</h2><p>${safe(ref.takeaway)}</p><div class="buttons" style="margin-top:12px;color:var(--teal);font-size:12px;font-weight:730">Open reference ${ic('arrow')}</div></a>`).join('')}</div>`;}
@@ -290,6 +323,11 @@ function setRatingPercent(value){
  if(save)save.textContent='Save '+ratingPercent+'% & continue';
 }
 const actions={
+ 'track-play':async()=>{metronome.stop();stopHarmonyPlayback();try{await songTrackPlayer.play();}catch(error){showToast('Cannot play track: '+error.message);}},
+ 'track-pause':()=>songTrackPlayer.pause(),'track-stop':()=>songTrackPlayer.stop(),
+ 'track-a':()=>{if(!songTrackPlayer.markA())showToast('Choose a track before setting loop A.');},
+ 'track-b':()=>{if(!songTrackPlayer.markB())showToast('First set loop A, then move forward at least one second.');},
+ 'track-clear-loop':()=>songTrackPlayer.clearAB(),
  'harmony-play':toggleHarmonyPlayback,'harmony-stop':stopHarmonyPlayback,
  'harmony-slower':()=>harmonyTempoChange(-5),'harmony-faster':()=>harmonyTempoChange(5),
  'harmony-log':logHarmonyAttempt,
@@ -319,14 +357,22 @@ document.addEventListener('change',async ev=>{const el=ev.target;
   if(key==='volume'){harmonyBacking.setVolume(harmonySettings.volume);return;}
   if(key==='click'){harmonyBacking.setClick(harmonySettings.click);return;}
   stopHarmonyPlayback();render();return;
- }if(el.dataset.setting){let value=el.value;if(el.dataset.setting==='selectedMode'&&state.active)return;state.settings[el.dataset.setting]=value;saveState(state);if(el.dataset.setting==='theme')document.body.dataset.theme=value;render();if(['subdivision','meter'].includes(el.dataset.setting)&&metronome.playing)metronome.stop();}
+ }
+ if(el.id==='song-track-file'&&el.files?.[0]){try{songTrackPlayer.load(el.files[0],route().page==='song'?route().id:state.active?.songId);render();showToast('Local track loaded. Press Play to rehearse.');}catch(error){showToast('Cannot load track: '+error.message);}return;}
+ if(el.id==='track-seek'){songTrackPlayer.seek(Number(el.value));return;}
+ if(el.id==='track-volume'){songTrackPlayer.setVolume(Number(el.value));return;}
+ if(el.dataset.trackLoop!==undefined){songTrackPlayer.setFullLoop(el.checked);return;}
+if(el.dataset.setting){let value=el.value;if(el.dataset.setting==='selectedMode'&&state.active)return;state.settings[el.dataset.setting]=value;saveState(state);if(el.dataset.setting==='theme')document.body.dataset.theme=value;render();if(['subdivision','meter'].includes(el.dataset.setting)&&metronome.playing)metronome.stop();}
  if(el.id==='import-file'&&el.files?.[0]){try{const file=el.files[0];if(file.size>25_000_000)throw Error('File is larger than 25 MB.');const json=JSON.parse(await file.text());const added=importedSnapshot(state,json);showToast(`${added} records imported. Existing records preserved.`);cloud.sync();render();}catch(error){showToast('Import failed: '+error.message);}}
  if(el.id==='drill-category')filterDrills();});
 document.addEventListener('input',ev=>{if(ev.target.id==='drill-search')filterDrills();if(ev.target.id==='session-notes'&&state.active){state.active.notes=ev.target.value;saveState(state);}});
 function filterDrills(){const q=($('drill-search')?.value||'').trim().toLowerCase(),cat=$('drill-category')?.value||'all';document.querySelectorAll('.drill-search-row').forEach(row=>{row.classList.toggle('hide',!row.dataset.search.includes(q)||(cat!=='all'&&row.dataset.category!==cat));});}
-window.addEventListener('hashchange',()=>{if(route().page!=='harmony')stopHarmonyPlayback();showRating=false;diagramStep=-1;render();});
-document.addEventListener('visibilitychange',()=>{if(document.hidden){pauseTimer();metronome.stop();stopHarmonyPlayback();}});
-window.addEventListener('beforeunload',()=>{pauseTimer();metronome.stop();stopHarmonyPlayback();});
+window.addEventListener('hashchange',()=>{const r=route();if(r.page!=='harmony')stopHarmonyPlayback();
+ const stillRelevant=(r.page==='song'&&r.id===songTrackPlayer.songId)||(r.page==='practice'&&state.active?.entries?.[state.active?.position]?.id==='song'&&state.active?.songId===songTrackPlayer.songId);
+ if(!stillRelevant)songTrackPlayer.pause();
+ showRating=false;diagramStep=-1;render();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){pauseTimer();metronome.stop();stopHarmonyPlayback();songTrackPlayer.pause();}});
+window.addEventListener('beforeunload',()=>{pauseTimer();metronome.stop();stopHarmonyPlayback();songTrackPlayer.dispose();});
 setInterval(()=>{updateClock();if(state.active?.startedAt)saveState(state);},1000);
 setInterval(()=>{if(cloud.user&&!document.hidden)cloud.sync();},120000);
 render();if(cloud.configured)cloud.init();
