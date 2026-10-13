@@ -124,16 +124,48 @@ export const REFERENCES=[
  {id:'ear',title:'Integrate ear training',category:'Musicianship',takeaway:'Hear a target note, sing it, then confirm it on the instrument.',points:['Sing thirds and sevenths before playing.','Play the same two-bar idea in two neighboring keys.','Record a phrase, pause, reproduce without looking.'],links:[]},
 ];
 export const REFERENCE_BY_ID=Object.fromEntries(REFERENCES.map(r=>[r.id,r]));
+export const SESSION_DURATIONS=[30,45,60,75,90,120];
+export const SESSION_MODES=[
+ ['technique','Technique','Picking, muting, harmony and fundamentals'],
+ ['repertoire','Song day','Repertoire, transitions and supporting technique'],
+ ['soloing','Soloing','Arpeggios, pentatonics, melodic lines and phrasing'],
+ ['comping','Comping','Rhythm, chords, shell voicings and clean releases'],
+ ['ear','Ear training','Listening, singing, recall and chord awareness'],
+ ['mixed','Mixed practice','A balanced combination of technique, jazz, ear and songs']
+];
 const TECH=[['picking-reset',5],['muting-skip',7],['arp-maj7',10],['penta-major',4],['jazz-251',10],['comp-shell',6],['ear-guide',3]];
 const REP=[['picking-swing',4],['muting-one',5],['arp-m7',7],['jazz-enclosure',7],['comp-rhythm',7],['ear-recall',3],['song',12]];
 const arps=['arp-maj7','arp-m7','arp-dom7','arp-major','arp-minor','arp-m7b5','arp-dim','arp-dim7','arp-aug','arp-3oct-major','arp-3oct-minor'];
 const jazz=['jazz-251','jazz-guide','jazz-enclosure','jazz-approach','jazz-barry'];
-export function makeSession(dayNumber=0,mode='technique',songId='autumn-leaves'){
+const PLAN_LIBRARY={
+ technique:[['picking-reset',5],['muting-skip',7],['arp-maj7',10],['penta-major',4],['jazz-251',10],['comp-shell',6],['ear-guide',3]],
+ repertoire:[['picking-swing',4],['muting-one',5],['arp-m7',7],['jazz-enclosure',7],['comp-rhythm',7],['ear-recall',3],['song',12]],
+ soloing:[['picking-swing',4],['arp-maj7',9],['penta-major',8],['jazz-approach',8],['jazz-enclosure',7],['jazz-barry',5],['ear-guide',4]],
+ comping:[['picking-swing',4],['muting-chord',6],['comp-shell',10],['comp-rhythm',9],['comp-release',7],['jazz-guide',5],['song',4]],
+ ear:[['ear-guide',9],['ear-recall',9],['jazz-guide',5],['ear-guide',7],['ear-recall',7],['penta-major',4],['song',4]],
+ mixed:[['picking-reset',4],['muting-skip',5],['arp-maj7',7],['penta-major',6],['jazz-251',7],['comp-shell',6],['ear-guide',5],['song',5]]
+};
+function allocateMinutes(template,total){
+ const weight=template.reduce((sum,item)=>sum+item[1],0);
+ const units=template.map(([id,w],i)=>({id,minutes:Math.floor(total*w/weight),remainder:total*w/weight%1,i}));
+ let remaining=total-units.reduce((sum,item)=>sum+item.minutes,0);
+ for(const item of [...units].sort((a,b)=>b.remainder-a.remainder||a.i-b.i).slice(0,remaining))item.minutes++;
+ return units.map(({id,minutes})=>({id,minutes,done:false}));
+}
+export function makeSession(dayNumber=0,mode='technique',songId='autumn-leaves',durationMinutes=45){
+ const safeMode=Object.hasOwn(PLAN_LIBRARY,mode)?mode:'technique';
+ const duration=SESSION_DURATIONS.includes(Number(durationMinutes))?Number(durationMinutes):45;
  const key=KEYS[((dayNumber%KEYS.length)+KEYS.length)%KEYS.length];
- const entries=(mode==='repertoire'?REP:TECH).map(([id,minutes],i)=>({id,minutes,done:false}));
- const arpeggio=entries.find(e=>e.id.startsWith('arp-')); if(arpeggio)arpeggio.id=arps[dayNumber%arps.length];
- const jazzEntry=entries.find(e=>e.id.startsWith('jazz-'));if(jazzEntry)jazzEntry.id=jazz[dayNumber%jazz.length];
- const pent=entries.find(e=>e.id.startsWith('penta-'));if(pent)pent.id=dayNumber%2?'penta-minor':'penta-major';
- const mute=entries.find(e=>e.id.startsWith('muting-'));if(mute)mute.id=['muting-skip','muting-one','muting-wide','muting-chord','muting-accent'][dayNumber%5];
- return {id:globalThis.crypto?.randomUUID?.()||String(Date.now()),mode,key,dayNumber,songId,entries,position:0,createdAt:new Date().toISOString(),startedAt:null,elapsedMs:0,notes:'',isFree:false};
+ // Preserve the long-standing 45-minute Technique/Song Day plans exactly.
+ const template=safeMode==='technique'&&duration===45?TECH:safeMode==='repertoire'&&duration===45?REP:PLAN_LIBRARY[safeMode];
+ const entries=allocateMinutes(template,duration);
+ const arpeggio=entries.find(e=>e.id==='arp-maj7'||e.id==='arp-m7');
+ if(arpeggio)arpeggio.id=arps[dayNumber%arps.length];
+ const jazzEntry=entries.find(e=>e.id==='jazz-251'||e.id==='jazz-enclosure');
+ if(jazzEntry)jazzEntry.id=jazz[dayNumber%jazz.length];
+ const pent=entries.find(e=>e.id==='penta-major');
+ if(pent)pent.id=dayNumber%2?'penta-minor':'penta-major';
+ const mute=entries.find(e=>e.id==='muting-skip'||e.id==='muting-one');
+ if(mute)mute.id=['muting-skip','muting-one','muting-wide','muting-chord','muting-accent'][dayNumber%5];
+ return {id:globalThis.crypto?.randomUUID?.()||String(Date.now()),mode:safeMode,durationMinutes:duration,key,dayNumber,songId,entries,position:0,createdAt:new Date().toISOString(),startedAt:null,elapsedMs:0,notes:'',isFree:false};
 }
