@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {buildNotePath,INTERVALS,renderTabSvg,renderFretboardSvg,shellShapes,progressionFor,keyPc,buildExample} from '../music.js';
+import {buildNotePath,INTERVALS,renderTabSvg,renderFretboardSvg,shellShapes,progressionFor,enclosureGuide,enclosureInstructions,keyPc,buildExample} from '../music.js';
 import {makeSession,KEYS,DRILLS,SONGS} from '../data.js';
 test('twelve keys in cycle of fourths',()=>{assert.deepEqual(KEYS,['C','F','Bb','Eb','Ab','Db','Gb','B','E','A','D','G']);for(let i=0;i<12;i++)assert.equal(makeSession(i).key,KEYS[i]);});
 test('chord formulas',()=>{assert.deepEqual(INTERVALS.maj7,[0,4,7,11]);assert.deepEqual(INTERVALS.m7b5,[0,3,6,10]);assert.deepEqual(INTERVALS.dim7,[0,3,6,9]);assert.deepEqual(INTERVALS.aug,[0,4,8]);assert.deepEqual(INTERVALS.dim,[0,3,6]);});
@@ -11,3 +11,21 @@ test('ii-V-I chord-name basics',()=>{assert.deepEqual(progressionFor('C').map(c=
 test('45-minute session shape and repertoire catalogue',()=>{for(const mode of ['technique','repertoire']){const s=makeSession(3,mode);assert.equal(s.entries.reduce((n,x)=>n+x.minutes,0),45);assert.ok(s.entries.every(x=>x.id==='song'||DRILLS.find(d=>d.id===x.id)));}assert.equal(SONGS.length,8);});
 
 test('dominant bebop fragment places chord tones on even indexes',()=>{const seq=buildExample('barry','C');assert.equal(seq.length,9);assert.deepEqual(seq.filter((_,i)=>i%2===0).map(n=>n.pc),[7,5,2,11,7]);});
+
+test('chromatic enclosures target the dominant third in selected key',()=>{
+ const cases={C:['G7','B','C','Bb'],Bb:['F7','A','Bb','Ab'],Db:['Ab7','C','Db','B'],Eb:['Bb7','D','Eb','Db']};
+ for(const [key,want] of Object.entries(cases)){
+  const guide=enclosureGuide(key);
+  assert.deepEqual([guide.dominant,guide.target,guide.above,guide.below],want);
+  const instructions=enclosureInstructions(key);
+  assert.equal(instructions.length,3);
+  assert.ok(instructions[1].includes(guide.above+' (one semitone ABOVE)'));
+  assert.ok(instructions[1].includes(guide.below+' (one semitone BELOW)'));
+  assert.deepEqual(buildExample('enclosure',key).map(n=>n.name),[guide.above,guide.below,guide.target]);
+ }
+});
+test('C enclosure describes Bb clearly, not A sharp',()=>{
+ const explanation=enclosureInstructions('C').join(' ');
+ assert.match(explanation,/Bb/);
+ assert.doesNotMatch(explanation,/A#/);
+});
