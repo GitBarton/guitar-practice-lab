@@ -23,6 +23,7 @@ test('rating control and release timeline have responsive styles and changed off
  assert.match(css,/\.release-timeline/);
  assert.match(css,/@media\(max-width:410px\)/);
  assert.match(sw,/const CACHE='gpl-app-[^']+'/);
+ assert.match(sw,/'\.\/song-audio\.js'/);
  assert.match(sw,/'\.\/harmony\.js'/);
  assert.match(sw,/'\.\/backing-audio\.js'/);
 });
