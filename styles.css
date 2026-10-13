@@ -64,6 +64,19 @@ body[data-theme="light"]{color-scheme:light;--bg:#f2f5f7;--side:#fff;--panel:#ff
 /* Keep the release-history link usable on narrow phone displays. */
 @media(max-width:550px){.topbar .eyebrow{display:none}.top-right{margin-left:auto;gap:6px}.topbar .top-right .pill:not(.release-link){display:none}.topbar .release-link{max-width:175px;overflow:hidden;text-overflow:ellipsis}.topbar .top-right a.btn{flex-shrink:0}}
 
+/* Private rehearsal player; native file picker with custom simple transport. */
+.song-track-panel{margin-top:16px}
+.song-track-panel .track-controls{margin-top:13px}
+.song-track-panel .track-seek-row{display:flex;align-items:center;gap:12px;margin:14px 0 18px}
+.song-track-panel .track-seek-row span{font-variant-numeric:tabular-nums;font-size:12px;min-width:37px;color:var(--muted)}
+.song-track-panel input[type="range"]{width:100%;accent-color:var(--teal);min-width:0}
+.song-track-panel input[type="file"]{width:100%;max-width:100%}
+.song-track-panel input[type="file"]::file-selector-button{background:var(--panel2);color:var(--text);border:1px solid var(--line);padding:8px;border-radius:8px;margin-right:10px;cursor:pointer}
+.song-track-panel .track-checkbox{display:flex;align-items:center;gap:9px;font-size:12px;min-height:42px}
+.song-track-panel input[type=checkbox]{accent-color:var(--teal)}
+.song-track-panel #track-error[hidden]{display:none}
+@media(max-width:680px){.song-track-panel .buttons{gap:6px}.song-track-panel .btn{font-size:12px;padding:9px 8px}.song-track-panel .form-row{gap:8px}}
+
 /* ii-V-I zone: local-only, beat-aligned chord accompaniment. */
 .harmony-shell{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(270px,1fr);gap:16px;align-items:start}
 .harmony-shell > *{min-width:0}
