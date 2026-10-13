@@ -2,6 +2,16 @@
 
 This changelog mirrors the **What’s new** screen in the application. Releases become public when their pull request is merged into `main` and GitHub Pages finishes deploying.
 
+## 1.2.0 — 2026-10-13 — Dynamic technique and musical challenges
+
+- Guided picking stages for isolation, skips, double-stops and octave grips.
+- Manually advanced major pentatonic phrasing stages with clearer question-and-answer exercises.
+- Four-finger G-string vibrato exercise, with explicit muting of neighboring strings and hammer-on/pull-off control.
+- Corrected selected-key chromatic enclosure explanations and B-flat naming.
+- Existing session records, tempo and metronome, 10%-step scoring, offline use and private cloud sync remain intact.
+
+**Scope:** This release does NOT yet include chord backing, local MP3/WAV playback, expanded Barry Harris curriculum or the finished arpeggio route redesign. These are tracked in Issues #15–#18 and in independent draft PRs #19 and #20. Validate this release on PC before merging.
+
 ## 1.1.0 — 2026-10-12 — Precision and feedback
 
 - New 0–100% self-assessed execution-quality rating in 10% increments, using one-tap presets and ±10% adjustment.

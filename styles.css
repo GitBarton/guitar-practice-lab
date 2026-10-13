@@ -76,3 +76,14 @@ body[data-theme="light"]{color-scheme:light;--bg:#f2f5f7;--side:#fff;--panel:#ff
 .song-track-panel input[type=checkbox]{accent-color:var(--teal)}
 .song-track-panel #track-error[hidden]{display:none}
 @media(max-width:680px){.song-track-panel .buttons{gap:6px}.song-track-panel .btn{font-size:12px;padding:9px 8px}.song-track-panel .form-row{gap:8px}}
+
+/* Opt-in practice stages. The practice timer and click keep running during transitions. */
+.stage-panel{background:var(--panel2);border:1px solid var(--line);border-radius:13px;padding:13px 15px;margin-bottom:14px}
+.stage-summary{display:flex;align-items:start;justify-content:space-between;gap:12px}
+.stage-summary h3{font-size:16px;margin:4px 0 5px;line-height:1.3}
+.stage-summary .pill{white-space:nowrap;align-self:start}
+.stage-steps{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
+.stage-steps .small{font-size:11px;line-height:1.4}
+.stage-steps .btn{font-size:11px;min-height:33px;padding:7px 10px}
+.stage-steps button:disabled{opacity:.4;cursor:not-allowed}
+@media(max-width:900px){.stage-summary{flex-wrap:wrap}.stage-steps .small{flex:1 0 100%;order:3}}

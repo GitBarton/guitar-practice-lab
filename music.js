@@ -10,6 +10,20 @@ export const escapeHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<'
 export function keyPc(key){const v={Bb:10,Eb:3,Ab:8,Db:1,Gb:6};return v[key]??SHARP_NAMES.indexOf(key);}
 export function noteName(midi){return PC_NAMES[((midi%12)+12)%12]+(Math.floor(midi/12)-1);}
 export function pitchName(pc){return PC_NAMES[((pc%12)+12)%12];}
+export function enclosureGuide(key='C'){
+ const tonic=keyPc(key);
+ if(tonic<0)throw new Error('Unrecognized key for enclosure: '+key);
+ const third=(tonic+11)%12;
+ return {key,dominant:pitchName(tonic+7)+'7',target:pitchName(third),above:pitchName(third+1),below:pitchName(third-1)};
+}
+export function enclosureInstructions(key='C'){
+ const {dominant,target,above,below}=enclosureGuide(key);
+ return [
+  'In '+key+' major, the V7 chord is '+dominant+'. Its major third, '+target+', is your destination.',
+  'Play '+above+' (one semitone ABOVE) → '+below+' (one semitone BELOW) → '+target+'. Count '+above+' on beat 4, '+below+' on the “and” of 4, then land on '+target+' on beat 1.',
+  'Repeat slowly twice. Then add two '+dominant+' chord tones and resolve to the I chord in '+key+'. Keep the target louder than the two approach notes.'
+ ];
+}
 function rootPitch(pc,octaves){const lo=octaves===3?40:45;const hi=octaves===3?50:56;const options=[];for(let m=lo;m<=hi;m++)if(m%12===pc)options.push(m); if(!options.length)return null;return options.sort((a,b)=>Math.abs(a-(octaves===3?43:49))-Math.abs(b-(octaves===3?43:49)))[0];}
 function pitchCandidates(midi){return STRING_MIDIS.flatMap((open,i)=>{const f=midi-open;return f>=0&&f<=22?[{string:i,fret:f}]:[];});}
 function qualityIntervals(quality,octaves){const ints=INTERVALS[quality]||INTERVALS.maj7;return Array.from({length:octaves},(_,o)=>ints.map(v=>v+12*o)).flat().concat([12*octaves]);}
@@ -39,6 +53,15 @@ export function buildNotePath(key='C',quality='maj7',octaves=2,position='low'){
 function cell(note, string, fret,pick){return {name:note,fret,string,pick};}
 export function buildExample(kind,key='C',quality='maj7',octaves=2,position='low'){
  if(kind==='arpeggio'||kind==='scale')return buildNotePath(key,quality,octaves,position);
+
+ // Fingering targets for a G-only vibrato isolation drill (not simultaneous notes).
+ if(kind==='vibrato-g')return [
+  cell('C4',2,5,'D'),cell('Db4',2,6,'D'),cell('D4',2,7,'D'),cell('Eb4',2,8,'D'),
+  cell('C4',2,5,'D'),cell('D4',2,7,'H'),cell('C4',2,5,'P')
+ ];
+ // Pairs are visual fret targets; strike together when the drill instructions say so.
+ if(kind==='double-stop')return [cell('C4',2,5,'D'),cell('E4',1,5,'D')];
+ if(kind==='octave')return [cell('C3',5,8,'D'),cell('C4',3,10,'D')];
  if(kind==='skip')return [cell('D',4,5,'D'),cell('C',2,5,'U'),cell('F',1,6,'D'),cell('C',2,5,'U')];
  if(kind==='wide')return [cell('G',3,5,'D'),cell('A',0,5,'U'),cell('G',3,5,'D'),cell('A',0,5,'U')];
  if(kind==='single')return [cell('C',2,5,'D'),cell('C',2,5,'U'),cell('C',2,5,'D'),cell('C',2,5,'U')];
@@ -48,7 +71,7 @@ export function buildExample(kind,key='C',quality='maj7',octaves=2,position='low
   const target=(keyPc(key)+11)%12;const pitches=[(target+1)%12,(target+11)%12,target];return pitches.map((pc,i)=>{
    const root=buildNotePath(key,'maj7',2);const targetMidi=(root[0]?.midi||48)+11+(i===0?1:i===1?-1:0);
    let candidates=pitchCandidates(targetMidi);const pos=candidates.find(p=>p.string===1)||candidates[0]||{string:1,fret:8};
-   return {name:i===1?SHARP_NAMES[pc]:pitchName(pc),string:pos.string,fret:pos.fret,pick:i%2?'U':'D',pc,index:i};
+   return {name:pitchName(pc),string:pos.string,fret:pos.fret,pick:i%2?'U':'D',pc,index:i};
   });
  }
  if(kind==='barry'){
