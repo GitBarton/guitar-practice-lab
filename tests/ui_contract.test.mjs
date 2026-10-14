@@ -109,3 +109,16 @@ test('practice UI shows keyboard hints and respects stages for Enter',()=>{
  assert.match(app,/<kbd>Enter<\/kbd> Next stage/);
  assert.match(css,/\.practice-shortcuts/);
 });
+
+test('Jazz Masters vocabulary zone has four artists, valid controls, reference links and dynamic note targets',()=>{
+ assert.match(app,/case 'vocabulary':html=renderVocabularyLab\(\)/);
+ assert.match(app,/\['vocabulary','Jazz Masters'/);
+ assert.match(app,/function renderVocabularyLab\(\)/);
+ assert.match(app,/data-vocabulary="artist"/);
+ assert.match(app,/data-vocabulary="study"/);
+ assert.match(app,/data-vocabulary="key"/);
+ assert.match(app,/vocab-next/);
+ assert.match(app,/renderTabSvg\(notes,current/);
+ assert.match(app,/artist\.source/);
+ assert.match(sw,/'\.\/vocabulary\.js'/);
+});
