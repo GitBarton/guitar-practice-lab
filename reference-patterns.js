@@ -48,6 +48,13 @@ export function referencePentatonicBox(key='A',quality='pentMinor',box=1){
   fretRange:[Math.min(...notes.map(n=>n.fret)),Math.max(...notes.map(n=>n.fret))],
   caption:box===1?'Root-box study; index/ring/pinky fingering is indicated where it fits.':'One of five overlapping conventional box shapes; avoid a single rigid fingering in every key.'};
 }
+export function referencePentatonicSkip(key='A',quality='pentMinor',box=1){
+ const source=referencePentatonicBox(key,quality,box);
+ // String skipping uses A and G, leaving the D string silent; not a scale run.
+ const a=source.notes.filter(n=>n.string===4),g=source.notes.filter(n=>n.string===2);
+ const notes=[a[0],g[0],a[1],g[1]].map((n,index)=>({...n,index,pick:index%2?'U':'D'}));
+ return {...source,notes,caption:'String-skip variant from a verified pentatonic box. Jump A→G while keeping the D string silent.'};
+}
 const DOM_E=[[5,0],[4,-1],[4,2],[3,0],[3,2],[2,1],[2,4],[1,3],[1,5]];
 const DOM_A=[[4,0],[3,-1],[3,2],[2,0],[2,2],[1,2],[0,0],[0,3],[0,5]];
 export function referenceDominant7(key='G',rootString='E'){
