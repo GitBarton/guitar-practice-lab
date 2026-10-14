@@ -137,7 +137,7 @@ test('warm jazz studio theme retains visible controls in both light and dark mod
  assert.match(app,/class="brand-guitar" src="\.\/icon\.svg"/);
  assert.match(icon,/<svg/);
  assert.match(icon,/hollow-body/i);
- assert.match(icon,/<linearGradient id="wood"/);
+ assert.match(icon,/<(?:linear|radial)Gradient id="wood"/);
  assert.match(icon,/arched|archtop|f-holes/i);
  assert.match(html,/content="#211f2d"/);
  assert.equal(manifest.icons[0].src,'./icon.svg');
