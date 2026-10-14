@@ -22,7 +22,7 @@ test('rating control and release timeline have responsive styles and changed off
  assert.match(css,/\.rating-scale/);
  assert.match(css,/\.release-timeline/);
  assert.match(css,/@media\(max-width:410px\)/);
- assert.match(sw,/const CACHE='gpl-app-[^']+'/);
+ assert.match(sw,/gpl-app-v1\.2\.0/);
  assert.match(sw,/'\.\/song-audio\.js'/);
  assert.match(sw,/'\.\/backing-audio\.js'/);
  assert.match(sw,/'\.\/harmony\.js'/);
@@ -108,6 +108,21 @@ test('practice UI shows keyboard hints and respects stages for Enter',()=>{
  assert.match(app,/<kbd>↑<\/kbd>\/\<kbd>↓<\/kbd>/);
  assert.match(app,/<kbd>Enter<\/kbd> Next stage/);
  assert.match(css,/\.practice-shortcuts/);
+});
+
+test('interactive modes route, key/mode selectors and active note navigation are wired',()=>{
+ assert.match(app,/case 'modes':html=renderModesLab\(\)/);
+ assert.match(app,/\['modes','Modes & Harmony'/);
+ assert.match(app,/function renderModesLab\(\)/);
+ assert.match(app,/data-theory="family"/);
+ assert.match(app,/data-theory="mode"/);
+ assert.match(app,/data-theory="key"/);
+ assert.match(app,/mode-step:/);
+ assert.match(app,/mode-next/);
+ assert.match(app,/mode-back/);
+ assert.match(app,/diatonicSevenths\(modalKey\)/);
+ assert.match(css,/\.mode-diatonic-grid/);
+ assert.match(sw,/'\.\/theory-lab\.js'/);
 });
 
 test('Jazz Masters vocabulary zone has four artists, valid controls, reference links and dynamic note targets',()=>{
