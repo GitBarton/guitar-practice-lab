@@ -618,11 +618,15 @@ document.addEventListener('click',async ev=>{const btn=ev.target.closest('[data-
 }
  if(name?.startsWith('pentatonic-box:')){
   const box=Number(name.slice(15));if(Number.isInteger(box)&&box>=1&&box<=5){pentatonicBox=box;diagramStep=-1;render();}return;
+ }
  if(name?.startsWith('dom-root:')){
   const root=name.slice(9);if(root==='E'||root==='A'){dominantRootString=root;diagramStep=-1;render();}return;
+ }
  if(name?.startsWith('modal-position:')){
   const wanted=name.slice(15);
   if(CAGED_REGIONS.some(s=>s.id===wanted)){modalPosition=wanted;render();}
+  return;
+ }
  if(name?.startsWith('drill-filter:'))return setDrillCategory(name.slice(13));if(name?.startsWith('start-free:'))return startSession(true,name.slice(11));if(name?.startsWith('song-focus:'))return startSession(true,null,name.slice(11));if(name?.startsWith('save-song:'))return saveSong(name.slice(10));if(name?.startsWith('rating-set:'))return setRatingPercent(Number(name.slice(11)));const handler=actions[name];if(handler){try{await handler();}catch(error){console.error(error);showToast('Action failed: '+error.message);}}});
 document.addEventListener('change',async ev=>{const el=ev.target;
  if(el.dataset.vocabulary){
@@ -632,6 +636,7 @@ document.addEventListener('change',async ev=>{const el=ev.target;
   }else if(category==='study'&&VOCAB_STUDIES.some(s=>s.id===el.value&&s.artist===vocabularyArtist)){vocabularyStudy=el.value;}
   else if(category==='key'&&KEYS.includes(el.value)){vocabularyKey=el.value;}
   vocabularyNote=-1;render();return;
+ }
  if(el.dataset.theory){
   const prop=el.dataset.theory;
   if(prop==='family'&&MODE_FAMILIES.some(f=>f.id===el.value)){
