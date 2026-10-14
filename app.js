@@ -3,6 +3,7 @@ import {CAGED_REGIONS,positionForMode} from './mode-positions.js';
 import {harmonizeSelectedMode} from './modal-harmony.js';
 import {buildExample,renderTabSvg,renderFretboardSvg,shellShapes,chordDiagramSvg,progressionFor,enclosureGuide,enclosureInstructions,escapeHtml as e,pitchName,keyPc,INTERVALS,buildNotePath} from './music.js';
 import {ARTIST_PROFILES,VOCAB_STUDIES,vocabularyNotes} from './vocabulary.js';
+import {renderStaffTabSvg} from './staff-notation.js';
 import {SongTrackPlayer,songClock} from './song-audio.js';
 import {MODE_FAMILIES,MODE_DEFINITIONS,scaleFor,diatonicSevenths,scaleTabTargets} from './theory-lab.js';
 import {OPEN_STRING_PITCHES,PITCH_CHOICES,pitchFrequency,registerTempoTap,ReferencePitchPlayer} from './reference-pitch.js';
@@ -120,7 +121,16 @@ function referencePatternControls(d,key){
  ${d.category==='pentatonic'&&pentatonicBox===1?'<p class="micro muted">Box 1 fretting guide: finger 1 = index, 3 = ring, 4 = pinky where reachable comfortably. Never force painful stretches.</p>':''}
  </section>`;
 }
-function progressSvg(notes,pulse=false){const focus=pulse&&diagramStep<0?0:diagramStep;return `<div class="diagram-viewport ${pulse?'target-tone-display':''}" id="diagram-container">${state.settings.diagram==='fretboard'?renderFretboardSvg(notes,focus,state.settings.labels):renderTabSvg(notes,focus,state.settings.labels)}</div>`;}
+function guitarNotationKey(){
+ const p=route().page;
+ if(p==='modes')return modalKey;
+ if(p==='vocabulary')return vocabularyKey;
+ if(p==='harmony')return harmonySettings.key;
+ if(state.active?.key)return state.active.key;
+ return state.settings.selectedKey!=='auto'?state.settings.selectedKey:todayKey();
+}
+function renderGuitarStaff(notes,active=-1){return renderStaffTabSvg(notes,guitarNotationKey(),active);}
+function progressSvg(notes,pulse=false){const focus=pulse&&diagramStep<0?0:diagramStep;return `<div class="diagram-viewport ${pulse?'target-tone-display':''}" id="diagram-container">${state.settings.diagram==='fretboard'?renderFretboardSvg(notes,focus,state.settings.labels):renderGuitarStaff(notes,focus)}</div>`;}
 function chordBlocks(key){return `<div class="grid-2">${shellShapes(key).map(c=>`<div style="background:var(--panel2);padding:12px;border-radius:12px;min-width:0"><div class="small muted">${c.label}</div><h3>${safe(c.name)}</h3><div class="diagram-viewport" style="padding:0;min-height:0;border:0">${chordDiagramSvg(c)}</div></div>`).join('')}</div><p class="footnote">These are transposable shell-voicing examples. Some keys use higher positions; choose a comfortable octave and mute each X string.</p>`;}
 function progressionPills(key){return `<div class="buttons">${progressionFor(key).map(p=>`<span class="pill special">${p.role} · ${safe(p.name)}</span>`).join('')}</div>`;}
 function clockMs(){const a=state.active;if(!a)return 0;return Math.max(0,(a.elapsedMs||0)+(a.startedAt?Date.now()-a.startedAt:0));}
@@ -194,7 +204,7 @@ function renderDrills(){
 function renderDrillDetail(id){const d=DRILL_BY_ID[id];if(!d)return `${pageHeader('Library','Drill not found','Return to the library.')}`;
  const key=todayKey(),instructions=d.kind==='enclosure'?enclosureInstructions(key):d.instructions,notes=drillDiagramNotes(d,key,currentStage(d)),rec=(d.reference||[]).map(ref=>REFERENCE_BY_ID[ref]).filter(Boolean),isChord=d.kind==='chords';
  return `${pageHeader(categoryTitle(d.category),d.title,d.summary,btn(`start-free:${d.id}`,`${ic('play')} practice this drill`,'primary'))}
- <div class="grid-main"><div class="card"><div class="card-header"><h2>Exercise diagram</h2>${tag(key,true)}</div>${referencePatternControls(d,key)}${isChord?chordBlocks(key):!notes.length?`<div class="alert">A full three-octave path is not available in this key on a 22-fret standard-tuned guitar. Try another key or a two-octave arpeggio.</div>`:`<div class="eyebrow">Tab · D = down, U = up</div><div class="diagram-viewport" style="margin-top:10px">${renderTabSvg(notes)}</div><div class="eyebrow" style="margin-top:20px">Fretboard</div><div class="diagram-viewport" style="margin-top:10px">${renderFretboardSvg(notes,-1,'note')}</div>`}${d.octaves===3?`<p class="alert">Three-octave lines can reach very high frets in some keys. Reduce the range or change key if your guitar or neck comfort makes this impractical.</p>`:''}<div class="divider"></div><h3>How to practice</h3><ol class="instruction-list">${instructions.map(i=>`<li>${safe(i)}</li>`).join('')}</ol>${stageCount(d)?`<h3>Guided stages</h3><ol class="instruction-list">${d.stages.map(stage=>`<li><strong>${safe(stage.title)}:</strong> ${safe(stage.focus)}</li>`).join('')}</ol>`:''} </div><aside class="card"><h3>References</h3>${rec.map(r=>rect(r.title,r.takeaway,'#reference/'+r.id)).join('')||'<p>No specific reference linked.</p>'}<div class="divider"></div><div class="buttons">${btn(`start-free:${d.id}`,'Start solo practice','primary full')}<a class="btn full ghost" href="#drills">Back to library</a></div></aside></div>`;
+ <div class="grid-main"><div class="card"><div class="card-header"><h2>Exercise diagram</h2>${tag(key,true)}</div>${referencePatternControls(d,key)}${isChord?chordBlocks(key):!notes.length?`<div class="alert">A full three-octave path is not available in this key on a 22-fret standard-tuned guitar. Try another key or a two-octave arpeggio.</div>`:`<div class="eyebrow">Tab · D = down, U = up</div><div class="diagram-viewport" style="margin-top:10px">${renderGuitarStaff(notes)}</div><div class="eyebrow" style="margin-top:20px">Fretboard</div><div class="diagram-viewport" style="margin-top:10px">${renderFretboardSvg(notes,-1,'note')}</div>`}${d.octaves===3?`<p class="alert">Three-octave lines can reach very high frets in some keys. Reduce the range or change key if your guitar or neck comfort makes this impractical.</p>`:''}<div class="divider"></div><h3>How to practice</h3><ol class="instruction-list">${instructions.map(i=>`<li>${safe(i)}</li>`).join('')}</ol>${stageCount(d)?`<h3>Guided stages</h3><ol class="instruction-list">${d.stages.map(stage=>`<li><strong>${safe(stage.title)}:</strong> ${safe(stage.focus)}</li>`).join('')}</ol>`:''} </div><aside class="card"><h3>References</h3>${rec.map(r=>rect(r.title,r.takeaway,'#reference/'+r.id)).join('')||'<p>No specific reference linked.</p>'}<div class="divider"></div><div class="buttons">${btn(`start-free:${d.id}`,'Start solo practice','primary full')}<a class="btn full ghost" href="#drills">Back to library</a></div></aside></div>`;
 }
 let modalFamily='melodic',modalKey='C',modalId='altered',modalStep=-1,modalPosition='G';
 function renderModesLab(){
@@ -223,7 +233,7 @@ function renderModesLab(){
  <div class="mode-degree-row">${scale.intervals.map((semitones,i)=>`<button type="button" class="mode-degree ${degree===i?'active':''}" data-action="mode-step:${i}" aria-pressed="${degree===i}">${safe(scale.degrees[i])}<small>${semitones} semitones</small></button>`).join('')}</div>
  <div class="buttons" style="margin:14px 0">${btn('mode-back','← Previous tone','small')}${btn('mode-next','Next tone →','small primary')}${btn('mode-reset','Show all','small ghost')}</div>
  <p role="status" class="micro muted">${degree>=0?'Focused degree '+(degree+1)+' of '+scale.intervals.length+' · '+scale.intervals[degree]+' semitones above '+modalKey:'Select a degree to highlight the guitar position.'} This position has ${notes.length} notes across six strings. The finger numbers below are a suggested one-finger-per-fret layout.</p>
- <div class="diagram-viewport">${renderTabSvg(notes,highlight,state.settings.labels)}</div>
+ <div class="diagram-viewport">${renderGuitarStaff(notes,highlight)}</div>
  <div class="diagram-viewport" style="margin-top:13px">${renderFretboardSvg(notes,highlight,state.settings.labels)}</div>
  <div class="mode-position-finger-list" aria-label="Fretting guide by string">
   ${[5,4,3,2,1,0].map(string=>`<div class="mode-string-row"><strong>${['e','B','G','D','A','E'][string]}</strong><span>${notes.filter(n=>n.string===string).map(n=>`<span class="mode-note-fingering ${n.degreeIndex===0?'is-root':''}" title="${safe(n.name)} · ${safe(n.interval)}"><b>${n.fret}</b><small>${n.finger===0?'open':'finger '+n.finger}</small></span>`).join('')}</span></div>`).join('')}
@@ -392,7 +402,7 @@ function renderVocabularyLab(){
  </div>
  <h2>${safe(exercise.title)}</h2><p class="muted">${safe(exercise.focus)}</p>
  <div class="buttons" style="margin:12px 0">${btn('vocab-prev','← Previous target','small')}${btn('vocab-next','Next target →','small primary')}${btn('vocab-reset','All notes','small ghost')}${tag(beatCount+' attacks')}</div>
- <div class="diagram-viewport">${renderTabSvg(notes,current,state.settings.labels)}</div>
+ <div class="diagram-viewport">${renderGuitarStaff(notes,current)}</div>
  <div class="diagram-viewport" style="margin-top:14px">${renderFretboardSvg(notes,current,state.settings.labels)}</div>
  <h3>Practice steps</h3><ol class="instruction-list">${exercise.instructions.map(i=>`<li>${safe(i)}</li>`).join('')}</ol>
  <p class="footnote">Original exercises inspired by documented playing concepts, not attributed note-for-note licks. Notes and simultaneous octave/dyad attacks are computed from standard tuning and verified in all 12 keys.</p>
