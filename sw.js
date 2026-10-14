@@ -1,4 +1,4 @@
-const CACHE='gpl-app-jazz-masters-20261014';
+const CACHE='gpl-app-v1.2.0-jazz-masters-20261014';
 const ASSETS=['./','./index.html','./styles.css','./app.js','./data.js','./vocabulary.js','./music.js','./song-audio.js','./storage.js','./config.js','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png','./harmony.js','./backing-audio.js'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});
