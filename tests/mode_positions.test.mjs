@@ -44,7 +44,7 @@ test('all 17 modes and all 12 keys: every position contains exact scale pitches 
  }
 });
 test('actual B-string moves stay inside one hand frame, not erratic jumps across the neck',()=>{
- for(const key of ['C','F#','Bb','B'])for(const mode of ['altered','diminished-hw','harmonic-minor','dorian']){
+ for(const key of ['C','Gb','Bb','B'])for(const mode of ['altered','diminished-hw','harmonic-minor','dorian']){
   for(const p of allModePositions(scaleFor(mode,key))){
    const b=p.notes.filter(n=>n.string===1);
    assert.ok(b.every((n,i)=>i===0||n.fret>b[i-1].fret));
