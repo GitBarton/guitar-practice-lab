@@ -1,1 +1,43 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="25" fill="#123b42"/><path d="M20 64c16-24 26-34 50-43M20 79c18-24 29-35 56-43" stroke="#6ce2cd" stroke-width="6" stroke-linecap="round"/><circle cx="32" cy="50" r="9" fill="#f0ba63"/><circle cx="65" cy="52" r="8" fill="#6ce2cd"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-labelledby="title desc">
+<title id="title">Guitar Practice Lab</title>
+<desc id="desc">Amber hollow-body jazz guitar with paired f-holes and golden strings on a plum and midnight background.</desc>
+<defs>
+ <linearGradient id="night" x1="0" y1="0" x2="1" y2="1">
+  <stop offset="0" stop-color="#402c43"/>
+  <stop offset=".55" stop-color="#28253a"/>
+  <stop offset="1" stop-color="#142a32"/>
+ </linearGradient>
+ <linearGradient id="wood" x1="0" y1="0" x2="1" y2="1">
+  <stop offset="0" stop-color="#f6c582"/>
+  <stop offset=".46" stop-color="#dc8b57"/>
+  <stop offset="1" stop-color="#ad5262"/>
+ </linearGradient>
+ <linearGradient id="finger" x1="0" y1="0" x2="1" y2="0">
+  <stop offset="0" stop-color="#4c303c"/>
+  <stop offset="1" stop-color="#71515a"/>
+ </linearGradient>
+</defs>
+<rect width="120" height="120" rx="27" fill="url(#night)"/>
+<circle cx="91" cy="26" r="29" fill="#6a8790" opacity=".13"/>
+<path d="M14 98 Q33 115 54 113 M75 12 Q105 20 107 49" fill="none" stroke="#a9b1a4" stroke-width="2" stroke-linecap="round" opacity=".38"/>
+<!-- Neck and decorative headstock: archtop proportions, not a brand-specific guitar outline -->
+<path d="M55 11 Q52 7 50 13 L52 23 L54 27 L54 47 L66 47 L66 27 L68 23 L70 13 Q66 7 63 11 Z" fill="url(#finger)" stroke="#f8c987" stroke-width="1.8"/>
+<path d="M54 29 H66 M54 35 H66 M54 41 H66" stroke="#e9cba9" stroke-width="1" opacity=".9"/>
+<circle cx="49" cy="15" r="1.8" fill="#f6d39d"/><circle cx="71" cy="15" r="1.8" fill="#f6d39d"/>
+<circle cx="49" cy="22" r="1.8" fill="#f6d39d"/><circle cx="71" cy="22" r="1.8" fill="#f6d39d"/>
+<!-- Offset double-cut hollow-body soundbox -->
+<path d="M56 43 C45 34 30 40 29 55 C28 63 37 70 38 77 C39 83 31 89 34 99 C39 115 53 113 60 109 C67 113 81 115 86 99 C89 89 81 83 82 77 C83 70 92 63 91 55 C90 40 75 34 64 43 L64 50 Q60 54 56 50 Z"
+ fill="url(#wood)" stroke="#f6d49b" stroke-width="2.5" stroke-linejoin="round"/>
+<path d="M43 49 C31 60 42 72 44 78 C47 86 38 95 43 101 M77 49 C89 60 78 72 76 78 C73 86 82 95 77 101"
+ stroke="#fde3b3" stroke-width="2" opacity=".48" fill="none" stroke-linecap="round"/>
+<!-- Two unmistakable carved archtop f-holes -->
+<path d="M45 62 C39 65 42 70 46 73 C49 76 42 84 44 91" fill="none" stroke="#462e3d" stroke-width="4" stroke-linecap="round"/>
+<path d="M75 62 C81 65 78 70 74 73 C71 76 78 84 76 91" fill="none" stroke="#462e3d" stroke-width="4" stroke-linecap="round"/>
+<path d="M45 61 L40 64 M44 91 L49 89 M75 61 L80 64 M76 91 L71 89" stroke="#462e3d" stroke-width="2.6" stroke-linecap="round"/>
+<rect x="53" y="78" width="14" height="4" rx="1.8" fill="#432b3a"/>
+<path d="M51 96 Q60 99 69 96 L66 104 L54 104 Z" fill="#503442" stroke="#ffd39a" stroke-width="1.1"/>
+<path d="M57 13 L57 97 M59 13 L59 97 M61 13 L61 97 M63 13 L63 97" stroke="#fff0c7" stroke-width=".9" opacity=".9"/>
+<path d="M57 54 H63" stroke="#fff3cf" stroke-width="2.3" stroke-linecap="round"/>
+<circle cx="96" cy="95" r="6" fill="#76b4ab" opacity=".93"/>
+<path d="M95 87 A13 13 0 0 1 107 99" fill="none" stroke="#76b4ab" stroke-width="1.7" stroke-linecap="round" opacity=".68"/>
+</svg>
