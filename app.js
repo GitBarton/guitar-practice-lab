@@ -384,21 +384,27 @@ function renderVocabularyLab(){
  const notes=vocabularyNotes(exercise.id,vocabularyKey),beatCount=notes.reduce((max,n)=>Math.max(max,n.beat??n.index),0)+1;
  const current=vocabularyNote>=0?Math.min(notes.length-1,vocabularyNote):-1;
  return `${pageHeader('Jazz guitar','Jazz Masters — vocabulary practice','Original, source-informed guitar studies; not transcriptions of protected recordings or published solos.')}
+ <div class="card">
+ <div class="form-row">
  <div class="form-group"><label>Player and concept</label><select data-vocabulary="artist">${ARTIST_PROFILES.map(p=>`<option value="${p.id}" ${p.id===artist.id?'selected':''}>${safe(p.name)}</option>`).join('')}</select></div>
  <div class="form-group"><label>Study</label><select data-vocabulary="study">${choices.map(c=>`<option value="${c.id}" ${c.id===exercise.id?'selected':''}>${safe(c.title)}</option>`).join('')}</select></div>
  <div class="form-group"><label>Key</label><select data-vocabulary="key">${KEYS.map(k=>`<option value="${k}" ${k===vocabularyKey?'selected':''}>${k}</option>`).join('')}</select></div>
+ </div>
  <h2>${safe(exercise.title)}</h2><p class="muted">${safe(exercise.focus)}</p>
  <div class="buttons" style="margin:12px 0">${btn('vocab-prev','← Previous target','small')}${btn('vocab-next','Next target →','small primary')}${btn('vocab-reset','All notes','small ghost')}${tag(beatCount+' attacks')}</div>
  <div class="diagram-viewport">${renderTabSvg(notes,current,state.settings.labels)}</div>
  <div class="diagram-viewport" style="margin-top:14px">${renderFretboardSvg(notes,current,state.settings.labels)}</div>
  <h3>Practice steps</h3><ol class="instruction-list">${exercise.instructions.map(i=>`<li>${safe(i)}</li>`).join('')}</ol>
  <p class="footnote">Original exercises inspired by documented playing concepts, not attributed note-for-note licks. Notes and simultaneous octave/dyad attacks are computed from standard tuning and verified in all 12 keys.</p>
+ </div>
  <div class="card" style="margin-top:15px">
  <div class="card-header"><h3>Source and listening context</h3></div>
  <p><strong>${safe(artist.name)}</strong>: ${safe(artist.theme)}.</p>
  <p>${safe(artist.provenance)}</p>
  <a href="${safe(artist.source)}" target="_blank" rel="noopener noreferrer">Read the published interview or guitar lesson →</a>
  <p class="footnote">For exact lines from a recording, use a properly licensed transcription or your own listening/transcription work. This app intentionally does not reproduce protected solos.</p>
+ </div>`;
+}
 function renderReferences(){return `${pageHeader('Permanent handbook','References & technique','Original notes and diagrams linked directly to your active exercises.',tag(REFERENCES.length+' topics'))}
  <div class="cards">${REFERENCES.map(ref=>`<a class="card route-link" href="#reference/${ref.id}" style="display:block"><div class="eyebrow">${safe(ref.category)}</div><h2 style="margin-top:12px">${safe(ref.title)}</h2><p>${safe(ref.takeaway)}</p><div class="buttons" style="margin-top:12px;color:var(--teal);font-size:12px;font-weight:730">Open reference ${ic('arrow')}</div></a>`).join('')}</div>`;}
 function renderReferenceDetail(id){const ref=REFERENCE_BY_ID[id];if(!ref)return `${pageHeader('Handbook','Reference not found','Return to the reference library.')}`;const relevant=DRILLS.filter(d=>(d.reference||[]).includes(id));return `${pageHeader(ref.category,ref.title,ref.takeaway)}<div class="grid-main"><div class="card"><h2>Essential ideas</h2><ol class="instruction-list">${ref.points.map(p=>`<li>${safe(p)}</li>`).join('')}</ol><div class="divider"></div><h3>Further learning</h3><div class="ref-links">${ref.links.map(([label,url])=>`<a href="${safe(url)}" target="_blank" rel="noopener noreferrer">${safe(label)} ↗</a>`).join('')||'<p class="small muted">Use the related drills to reinforce these concepts.</p>'}</div><div class="divider"></div><a href="#references" class="btn ghost">All references</a></div><aside class="card"><h3>Related exercises</h3><div class="list">${relevant.slice(0,9).map(d=>rect(d.title,d.summary,'#drill/'+d.id)).join('')}</div></aside></div>`;}
