@@ -109,3 +109,23 @@ test('practice UI shows keyboard hints and respects stages for Enter',()=>{
  assert.match(app,/<kbd>Enter<\/kbd> Next stage/);
  assert.match(css,/\.practice-shortcuts/);
 });
+
+test('warm jazz studio theme retains visible controls in both light and dark modes',()=>{
+ const icon=readFileSync(new URL('../icon.svg',import.meta.url),'utf8');
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const manifest=JSON.parse(readFileSync(new URL('../manifest.webmanifest',import.meta.url),'utf8'));
+ assert.match(css,/:root\{[^\n]*--brass:#d9a35b/);
+ assert.match(css,/body\[data-theme="light"\]\{[^\n]*--bg:#f4ede2/);
+ assert.match(css,/\.hero\{background:radial-gradient/);
+ assert.match(css,/\.btn\.primary\{background:linear-gradient/);
+ assert.match(css,/prefers-reduced-motion:reduce/);
+ assert.match(app,/class="brand-guitar" src="\.\/icon\.svg"/);
+ assert.match(icon,/<svg/);
+ assert.match(icon,/hollow-body/i);
+ assert.match(icon,/<linearGradient id="wood"/);
+ assert.match(icon,/arched|archtop|f-holes/i);
+ assert.match(html,/content="#211f2d"/);
+ assert.equal(manifest.icons[0].src,'./icon.svg');
+ assert.equal(manifest.theme_color,'#211f2d');
+ assert.match(sw,/gpl-app-v1\.2\.0-warm-brand/);
+});
