@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {KEYS} from '../data.js';
 import {keyPc,renderTabSvg,renderFretboardSvg} from '../music.js';
-import {SCALE_BOXES,referencePentatonicBox,referenceDominant7} from '../reference-patterns.js';
+import {SCALE_BOXES,referencePentatonicBox,referencePentatonicSkip,referenceDominant7} from '../reference-patterns.js';
 const opens=[64,59,55,50,45,40];
 test('published A minor pentatonic box 1 matches the 5–8 / 5–7 conventional shape',()=>{
  const p=referencePentatonicBox('A','pentMinor',1);
@@ -63,4 +63,14 @@ test('reject unsupported root/box/quality combinations',()=>{
  assert.throws(()=>referencePentatonicBox('A','maj7',1));
  assert.throws(()=>referencePentatonicBox('A','pentMinor',9));
  assert.throws(()=>referenceDominant7('G','B'));
+});
+
+test('pentatonic string-skip exercise really skips D between A and G',()=>{
+ for(const key of KEYS)for(const quality of ['pentMajor','pentMinor'])for(const box of SCALE_BOXES){
+  const exercise=referencePentatonicSkip(key,quality,box);
+  assert.deepEqual(exercise.notes.map(n=>n.string),[4,2,4,2]);
+  assert.deepEqual(exercise.notes.map(n=>n.pick),['D','U','D','U']);
+  const full=referencePentatonicBox(key,quality,box).notes;
+  assert.ok(exercise.notes.every(n=>full.some(p=>p.midi===n.midi&&p.string===n.string)));
+ }
 });
