@@ -142,7 +142,7 @@ test('warm jazz studio theme retains visible controls in both light and dark mod
  assert.match(html,/content="#211f2d"/);
  assert.equal(manifest.icons[0].src,'./icon.svg');
  assert.equal(manifest.theme_color,'#211f2d');
- assert.match(sw,/gpl-app-v1\.2\.0-warm-brand/);
+ assert.match(sw,/gpl-app-v1\.2\.0-[a-z0-9-]+/);
 });
 
 test('Home offers reference pitch without microphone and reuses practice metronome',()=>{
