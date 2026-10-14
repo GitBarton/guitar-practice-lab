@@ -606,6 +606,7 @@ function handlePracticeShortcut(ev){
  return false;
 }
 document.addEventListener('keydown',handlePracticeShortcut);
+document.addEventListener('keydown',ev=>{if((ev.key==='Enter'||ev.key===' ')&&ev.target?.matches?.('.score-note[role="button"]')){ev.preventDefault();ev.target.dispatchEvent(new MouseEvent('click',{bubbles:true}));}});
 document.addEventListener('click',async ev=>{const btn=ev.target.closest('[data-action]');if(!btn)return;ev.preventDefault();const name=btn.dataset.action;if(name?.startsWith('score-focus:')){const i=Number(name.slice(12));if(Number.isInteger(i)&&i>=0){if(route().page==='vocabulary')vocabularyNote=i;else if(route().page==='modes'){const notes=positionForMode(scaleFor(modalId,modalKey),modalPosition).notes;modalStep=notes[i]?.degreeIndex??-1;}else diagramStep=i;render();}return;}if(name?.startsWith('mode-step:')){const i=Number(name.slice(10));if(Number.isInteger(i)&&i>=0&&i<scaleFor(modalId,modalKey).intervals.length){modalStep=i;render();}return;}if(name?.startsWith('home-pitch:')){
  const midi=Number(name.slice(11));
  if(PITCH_CHOICES.some(p=>p.midi===midi)){
