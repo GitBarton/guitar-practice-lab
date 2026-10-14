@@ -1,7 +1,7 @@
 // Reference-checked jazz chord-scale formulae, separate from physical guitar shapes.
 // Berklee: https://online.berklee.edu/takenote/jazz-improvisation-10-scales/
 // Berklee: https://online.berklee.edu/takenote/voice-leading-for-guitar/
-import {keyPc} from './music.js';
+import {keyPc,noteName} from './music.js';
 import {KEYS} from './data.js';
 export const MODE_FAMILIES=[
  {id:'major',title:'Major scale modes'},
@@ -77,7 +77,7 @@ export function scaleTabTargets(scale){
    return score(a)-score(b);
   })[0];
   previous=best;
-  return {...best,pc:midi%12,name:scale.key+' +'+interval,index:i,
+  return {...best,pc:midi%12,name:noteName(midi),index:i,
    interval:i===scale.intervals.length?'1 (octave)':String(i+1),pick:i%2?'U':'D'};
  });
 }
