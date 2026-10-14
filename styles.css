@@ -122,6 +122,28 @@ body[data-theme="light"]{color-scheme:light;--bg:#f2f5f7;--side:#fff;--panel:#ff
 .practice-shortcuts{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:0 0 11px;line-height:1.6}
 .practice-shortcuts kbd{display:inline-flex;align-items:center;justify-content:center;min-width:25px;padding:1px 6px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;background:var(--panel2);font:inherit;font-weight:700;color:var(--text)}
 
+/* Chord-scale library: readable degree targets and responsive diatonic harmony. */
+.modes-heading{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0 8px}
+.mode-degree-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:18px}
+.mode-degree{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:57px;min-height:58px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);color:var(--text);font-weight:750}
+.mode-degree small{font-size:10px;font-weight:450;color:var(--muted)}
+.mode-degree.active{border-color:var(--teal);box-shadow:inset 0 0 0 1px var(--teal);background:var(--teal2)}
+.mode-diatonic-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;margin:17px 0}
+.mode-diatonic{display:flex;flex-direction:column;gap:7px;align-items:center;text-align:center;border:1px solid var(--line);border-radius:10px;padding:13px 5px;background:var(--panel2)}
+.mode-diatonic strong{font-size:15px}
+@media(max-width:950px){.mode-diatonic-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:490px){.mode-diatonic-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.mode-degree{min-width:48px}}
+/* Subtle guided-note emphasis for ear/target-tone drills, disabled for reduced motion. */
+@keyframes ear-target-glow{0%,100%{opacity:1;filter:drop-shadow(0 0 1px var(--teal))}50%{opacity:.65;filter:drop-shadow(0 0 8px var(--amber))}}
+@media(prefers-reduced-motion:no-preference){
+ .target-tone-display svg .on-note,
+ .target-tone-display svg circle[stroke="#fff"]{animation:ear-target-glow 1.6s ease-in-out infinite}
+}
+@media(prefers-reduced-motion:reduce){
+ .target-tone-display svg .on-note,
+ .target-tone-display svg circle[stroke="#fff"]{animation:none}
+}
+
 /* Original Jazz Masters phrase studies, readable without external assets */
 #app .card:has([data-vocabulary]) h2{margin:19px 0 8px;font-size:20px}
 @media(max-width:650px){#app .card:has([data-vocabulary]) .form-row{flex-direction:column}}
