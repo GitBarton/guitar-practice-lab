@@ -1,7 +1,7 @@
 import {APP_VERSION,KEYS,CATEGORIES,SONGS,DRILLS,DRILL_BY_ID,REFERENCES,REFERENCE_BY_ID,RELEASE_NOTES,SESSION_DURATIONS,SESSION_MODES,stageCount,currentStage,clampedStageIndex,makeSession} from './data.js';
 import {buildExample,renderTabSvg,renderFretboardSvg,shellShapes,chordDiagramSvg,progressionFor,enclosureGuide,enclosureInstructions,escapeHtml as e,pitchName,keyPc,INTERVALS,buildNotePath} from './music.js';
 import {SongTrackPlayer,songClock} from './song-audio.js';
-import {referencePentatonicBox,referenceDominant7} from './reference-patterns.js';
+import {referencePentatonicBox,referencePentatonicSkip,referenceDominant7} from './reference-patterns.js';
 import {buildTwoFiveOne,clampHarmonyTempo} from './harmony.js';
 import {ChordBacking} from './backing-audio.js';
 import {loadState,saveState,addRecord,uid,weeklyReport,downloadText,exportCsv,importedSnapshot,validRatingPercent,isHighQualityDrill,ratingDisplay,CloudSync} from './storage.js';
@@ -60,7 +60,7 @@ function renderToday(){const complete=countSessions(),recent=lastSeven(),session
 }
 function referencePattern(d,key){
  if(d?.category==='pentatonic'&&['pentMajor','pentMinor'].includes(d.quality))
-  return referencePentatonicBox(key,d.quality,pentatonicBox);
+  return d.id==='penta-string'?referencePentatonicSkip(key,d.quality,pentatonicBox):referencePentatonicBox(key,d.quality,pentatonicBox);
  if(d?.id==='arp-dom7')return referenceDominant7(key,dominantRootString);
  return null;
 }
