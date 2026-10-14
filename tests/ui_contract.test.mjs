@@ -124,3 +124,25 @@ test('interactive modes route, key/mode selectors and active note navigation are
  assert.match(css,/\.mode-diatonic-grid/);
  assert.match(sw,/'\.\/theory-lab\.js'/);
 });
+
+test('repertoire page provides validated manual-song form and includes it throughout song workflow',()=>{
+ const manual=readFileSync(new URL('../manual-songs.js',import.meta.url),'utf8');
+ assert.match(app,/import \{completeSongLibrary,manualSongs,newCustomSong,SONG_METERS,CUSTOM_SONG_KIND\}/);
+ assert.match(app,/const allSongs=\(\)=>completeSongLibrary\(state\.records\)/);
+ assert.match(app,/class="card manual-song-creator"/);
+ assert.match(app,/id="new-song-title"/);
+ assert.match(app,/id="new-song-key"/);
+ assert.match(app,/id="new-song-bpm"/);
+ assert.match(app,/id="new-song-focus"/);
+ assert.match(app,/id="new-song-drill"/);
+ assert.match(app,/id="new-song-notes"/);
+ assert.match(app,/data-action="add-manual-song"/);
+ assert.match(app,/function addManualSongFromForm\(\)/);
+ assert.match(app,/addRecord\(state,CUSTOM_SONG_KIND,song\)/);
+ assert.match(app,/allSongs\(\)\.find\(s=>s\.id===id\)/);
+ assert.match(app,/allSongs\(\)\.find\(s=>s\.id===a\.songId\)/);
+ assert.match(app,/\$\{allSongs\(\)\.map\(s=>/);
+ assert.match(css,/\.manual-song-creator/);
+ assert.match(sw,/'\.\/manual-songs\.js'/);
+ assert.match(manual,/CUSTOM_SONG_KIND='custom-song'/);
+});
