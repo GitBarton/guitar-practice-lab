@@ -105,8 +105,10 @@ function referencePattern(d,key){
   return d.id==='penta-string'?referencePentatonicSkip(key,d.quality,pentatonicBox):referencePentatonicBox(key,d.quality,pentatonicBox);
  if(d?.id==='arp-dom7')return referenceDominant7(key,dominantRootString);
  return null;
+}
 function drillDiagramNotes(d,key,stage){
  return referencePattern(d,key)?.notes||buildExample(stage?.exampleKind||d.kind,key,d.quality||'maj7',d.octaves||2,state.settings.position);
+}
 function referencePatternControls(d,key){
  const pattern=referencePattern(d,key);
  if(!pattern)return '';
