@@ -1,43 +1,38 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-labelledby="title desc">
-<title id="title">Guitar Practice Lab</title>
-<desc id="desc">Amber hollow-body jazz guitar with paired f-holes and golden strings on a plum and midnight background.</desc>
-<defs>
- <linearGradient id="night" x1="0" y1="0" x2="1" y2="1">
-  <stop offset="0" stop-color="#402c43"/>
-  <stop offset=".55" stop-color="#28253a"/>
-  <stop offset="1" stop-color="#142a32"/>
- </linearGradient>
- <linearGradient id="wood" x1="0" y1="0" x2="1" y2="1">
-  <stop offset="0" stop-color="#f6c582"/>
-  <stop offset=".46" stop-color="#dc8b57"/>
-  <stop offset="1" stop-color="#ad5262"/>
- </linearGradient>
- <linearGradient id="finger" x1="0" y1="0" x2="1" y2="0">
-  <stop offset="0" stop-color="#4c303c"/>
-  <stop offset="1" stop-color="#71515a"/>
- </linearGradient>
-</defs>
-<rect width="120" height="120" rx="27" fill="url(#night)"/>
-<circle cx="91" cy="26" r="29" fill="#6a8790" opacity=".13"/>
-<path d="M14 98 Q33 115 54 113 M75 12 Q105 20 107 49" fill="none" stroke="#a9b1a4" stroke-width="2" stroke-linecap="round" opacity=".38"/>
-<!-- Neck and decorative headstock: archtop proportions, not a brand-specific guitar outline -->
-<path d="M55 11 Q52 7 50 13 L52 23 L54 27 L54 47 L66 47 L66 27 L68 23 L70 13 Q66 7 63 11 Z" fill="url(#finger)" stroke="#f8c987" stroke-width="1.8"/>
-<path d="M54 29 H66 M54 35 H66 M54 41 H66" stroke="#e9cba9" stroke-width="1" opacity=".9"/>
-<circle cx="49" cy="15" r="1.8" fill="#f6d39d"/><circle cx="71" cy="15" r="1.8" fill="#f6d39d"/>
-<circle cx="49" cy="22" r="1.8" fill="#f6d39d"/><circle cx="71" cy="22" r="1.8" fill="#f6d39d"/>
-<!-- Offset double-cut hollow-body soundbox -->
-<path d="M56 43 C45 34 30 40 29 55 C28 63 37 70 38 77 C39 83 31 89 34 99 C39 115 53 113 60 109 C67 113 81 115 86 99 C89 89 81 83 82 77 C83 70 92 63 91 55 C90 40 75 34 64 43 L64 50 Q60 54 56 50 Z"
- fill="url(#wood)" stroke="#f6d49b" stroke-width="2.5" stroke-linejoin="round"/>
-<path d="M43 49 C31 60 42 72 44 78 C47 86 38 95 43 101 M77 49 C89 60 78 72 76 78 C73 86 82 95 77 101"
- stroke="#fde3b3" stroke-width="2" opacity=".48" fill="none" stroke-linecap="round"/>
-<!-- Two unmistakable carved archtop f-holes -->
-<path d="M45 62 C39 65 42 70 46 73 C49 76 42 84 44 91" fill="none" stroke="#462e3d" stroke-width="4" stroke-linecap="round"/>
-<path d="M75 62 C81 65 78 70 74 73 C71 76 78 84 76 91" fill="none" stroke="#462e3d" stroke-width="4" stroke-linecap="round"/>
-<path d="M45 61 L40 64 M44 91 L49 89 M75 61 L80 64 M76 91 L71 89" stroke="#462e3d" stroke-width="2.6" stroke-linecap="round"/>
-<rect x="53" y="78" width="14" height="4" rx="1.8" fill="#432b3a"/>
-<path d="M51 96 Q60 99 69 96 L66 104 L54 104 Z" fill="#503442" stroke="#ffd39a" stroke-width="1.1"/>
-<path d="M57 13 L57 97 M59 13 L59 97 M61 13 L61 97 M63 13 L63 97" stroke="#fff0c7" stroke-width=".9" opacity=".9"/>
-<path d="M57 54 H63" stroke="#fff3cf" stroke-width="2.3" stroke-linecap="round"/>
-<circle cx="96" cy="95" r="6" fill="#76b4ab" opacity=".93"/>
-<path d="M95 87 A13 13 0 0 1 107 99" fill="none" stroke="#76b4ab" stroke-width="1.7" stroke-linecap="round" opacity=".68"/>
+ <title id="title">Guitar Practice Lab</title>
+ <desc id="desc">Vibrant vintage hollow-body jazz guitar emblem, with a honey-and-coral sunburst, carved f-holes, golden strings and teal rhythm lines.</desc>
+ <defs>
+  <radialGradient id="night" cx=".18" cy=".12" r="1.25"><stop stop-color="#633b63"/><stop offset=".55" stop-color="#27233e"/><stop offset="1" stop-color="#101b2d"/></radialGradient>
+  <radialGradient id="wood" cx=".40" cy=".39" r=".73"><stop stop-color="#ffe5a1"/><stop offset=".30" stop-color="#ffc267"/><stop offset=".63" stop-color="#ee8050"/><stop offset=".85" stop-color="#c04d5d"/><stop offset="1" stop-color="#863f65"/></radialGradient>
+  <linearGradient id="finger" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#392938"/><stop offset=".52" stop-color="#62414a"/><stop offset="1" stop-color="#2e293d"/></linearGradient>
+  <linearGradient id="binding" x1="0" y1="0" x2=".9" y2="1"><stop stop-color="#fff0bb"/><stop offset=".55" stop-color="#eead69"/><stop offset="1" stop-color="#ffdca1"/></linearGradient>
+  <filter id="halo"><feGaussianBlur stdDeviation="8"/></filter>
+ </defs>
+ <rect width="120" height="120" rx="25" fill="url(#night)"/>
+ <ellipse cx="70" cy="68" rx="43" ry="43" fill="#fc885c" opacity=".19" filter="url(#halo)"/>
+ <path d="M14 83 A54 54 0 0 1 83 13 M104 43 A51 51 0 0 1 93 111" fill="none" stroke="#70d7c5" stroke-width="2.3" stroke-linecap="round" opacity=".72"/>
+ <path d="M17 94 A53 53 0 0 0 30 108 M88 13 A52 52 0 0 1 107 32" fill="none" stroke="#ffb768" stroke-width="3" stroke-linecap="round" opacity=".82"/>
+ <circle cx="17" cy="36" r="3.1" fill="#faad70"/><circle cx="102" cy="83" r="3.7" fill="#70d7c5"/>
+ <!-- Tall archtop neck and vintage headstock -->
+ <path d="M53 25 L51 14 Q50 8 56 7 L64 7 Q70 8 69 14 L67 25 L65 30 L65 52 L55 52 L55 30 Z" fill="url(#finger)" stroke="#ffdc8b" stroke-width="2.5" stroke-linejoin="round"/>
+ <path d="M55 29 H65 M55 35 H65 M55 42 H65 M55 49 H65" stroke="#ffc981" stroke-width="1.2"/>
+ <path d="M59 30 h2 M59 40 h2" stroke="#83ded0" stroke-width="2" stroke-linecap="round"/>
+ <path d="M53 14 L47 13 M53 19 L47 21 M53 24 L48 29 M67 14 L73 13 M67 19 L73 21 M67 24 L72 29" stroke="#eac08e" stroke-width="1.5" stroke-linecap="round"/>
+ <g fill="#ffe4a2" stroke="#6c3a55" stroke-width=".8"><circle cx="46" cy="13" r="2.4"/><circle cx="46" cy="21" r="2.4"/><circle cx="47" cy="29" r="2.4"/><circle cx="74" cy="13" r="2.4"/><circle cx="74" cy="21" r="2.4"/><circle cx="73" cy="29" r="2.4"/></g>
+ <!-- Broad offset hollow-body, Venetian cutaway, double binding -->
+ <path d="M55 44 C44 36 30 43 29 56 C27 68 40 73 39 83 C38 91 33 94 39 104 C44 115 55 113 61 108 C69 114 81 113 87 104 C94 94 85 87 84 80 C83 73 92 69 93 58 C95 45 84 39 75 42 C67 44 72 54 64 56 L64 48 Q60 51 55 48 Z" fill="url(#wood)" stroke="#2b1c31" stroke-width="5" stroke-linejoin="round"/>
+ <path d="M55 44 C44 36 30 43 29 56 C27 68 40 73 39 83 C38 91 33 94 39 104 C44 115 55 113 61 108 C69 114 81 113 87 104 C94 94 85 87 84 80 C83 73 92 69 93 58 C95 45 84 39 75 42 C67 44 72 54 64 56 L64 48 Q60 51 55 48 Z" fill="none" stroke="url(#binding)" stroke-width="2.5" stroke-linejoin="round"/>
+ <path d="M40 55 C36 68 49 75 45 88 M82 54 C87 67 74 74 79 89" fill="none" stroke="#ffefbb" stroke-width="2.6" opacity=".5" stroke-linecap="round"/>
+ <!-- Carved f-holes stand out at app-icon sizes -->
+ <path d="M46 65 C39 68 48 75 48 79 C49 85 41 89 44 94 M75 63 C82 67 73 74 73 79 C72 85 80 89 77 94" fill="none" stroke="#432536" stroke-width="5" stroke-linecap="round"/>
+ <path d="M45 64 L40 67 M44 94 L50 91 M76 63 L82 66 M77 94 L71 91" fill="none" stroke="#432536" stroke-width="2.6" stroke-linecap="round"/>
+ <!-- Floating jazz pickguard, rosewood bridge and trapeze tailpiece -->
+ <path d="M69 59 Q79 61 80 75 L68 83 Z" fill="#3b293c" opacity=".87" stroke="#ffd594" stroke-width="1.3"/>
+ <path d="M53 83 Q60 80 67 83 L67 86 Q60 84 53 86 Z" fill="#382435" stroke="#ffdaa4" stroke-width="1"/>
+ <path d="M52 99 Q60 103 68 99 L65 108 L55 108 Z" fill="#402a3a" stroke="#ffd795" stroke-width="1.4"/>
+ <path d="M55 96 Q60 98 65 96" fill="none" stroke="#fff0c5" stroke-width="1.4"/>
+ <!-- Six visible brass strings -->
+ <g stroke="#fff3c9" opacity=".96" stroke-linecap="round"><path d="M56 13 V101" stroke-width=".75"/><path d="M57.6 13 V101" stroke-width=".7"/><path d="M59.2 13 V101" stroke-width=".65"/><path d="M60.8 13 V101" stroke-width=".65"/><path d="M62.4 13 V101" stroke-width=".7"/><path d="M64 13 V101" stroke-width=".75"/></g>
+ <path d="M55 29 H65" stroke="#ffe8ac" stroke-width="2.1"/>
+ <path d="M95 19 q9 5 10 14 M95 26 q4 2 4 6" stroke="#83e2d2" fill="none" stroke-width="2.2" stroke-linecap="round"/>
 </svg>
