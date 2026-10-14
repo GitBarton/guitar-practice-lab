@@ -3,6 +3,7 @@ import {buildExample,renderTabSvg,renderFretboardSvg,shellShapes,chordDiagramSvg
 import {SongTrackPlayer,songClock} from './song-audio.js';
 import {MODE_FAMILIES,MODE_DEFINITIONS,scaleFor,diatonicSevenths,scaleTabTargets} from './theory-lab.js';
 import {CAGED_REGIONS,positionForMode} from './mode-positions.js';
+import {harmonizeSelectedMode} from './modal-harmony.js';
 import {buildTwoFiveOne,clampHarmonyTempo} from './harmony.js';
 import {ChordBacking} from './backing-audio.js';
 import {loadState,saveState,addRecord,uid,weeklyReport,downloadText,exportCsv,importedSnapshot,validRatingPercent,isHighQualityDrill,ratingDisplay,CloudSync} from './storage.js';
@@ -141,7 +142,7 @@ function renderModesLab(){
  if(active!==modalId){modalId=active;return renderModesLab();}
  const degree=modalStep>=0?Math.min(scale.intervals.length-1,modalStep):-1;
  const highlight=degree>=0?notes.findIndex(note=>note.degreeIndex===degree):-1;
- const chords=diatonicSevenths(modalKey);
+ const modalHarmony=harmonizeSelectedMode(scale);
  return `${pageHeader('Music theory','Modes & diatonic harmony','An interactive pitch-checked library: hear the interval, visualize the note and practice a target in every key.')}
  <div class="card">
  <div class="form-row">
@@ -167,10 +168,12 @@ function renderModesLab(){
  </div>
  </div>
  <section class="card" style="margin-top:18px">
- <h2>Diatonic 7th chords of ${modalKey} major</h2>
- <p class="muted">Stack alternate scale degrees in thirds. These labels follow the major-key signature; they are not diminished-scale chord qualities.</p>
- <div class="mode-diatonic-grid">${chords.map(ch=>`<div class="mode-diatonic"><span class="eyebrow">${safe(ch.role)}</span><strong>${safe(ch.symbol)}</strong><span class="micro muted">${safe(ch.quality)}</span></div>`).join('')}</div>
- <p class="footnote">Reference: Berklee Online’s Jazz Scales and Voice Leading for Guitar. The app transposes verified pitch classes; exact physical fingering patterns require a separate reference-audited route library.</p>
+ <h2>${safe(modalHarmony.title)}</h2>
+ <p class="muted">${safe(modalHarmony.description)}</p>
+ <div class="mode-diatonic-grid ${modalHarmony.kind==='characteristic'?'modal-characteristic':''}" aria-label="Harmony of the selected mode">
+  ${modalHarmony.chords.map(ch=>`<div class="mode-diatonic"><span class="eyebrow">${safe(ch.role)}</span><strong>${safe(ch.symbol)}</strong><span class="micro muted">${safe(ch.quality)}</span><span class="micro muted">Semitones: ${ch.intervals.join(' · ')}</span>${ch.warning?`<span class="micro muted">${safe(ch.warning)}</span>`:''}</div>`).join('')}
+ </div>
+ <p class="footnote">Harmony is recalculated from ${safe(modalKey)} ${safe(scale.title)}. Seven-tone modes use alternate-degree tertian stacks; altered and symmetric diminished scales show their characteristic dominant/diminished chord colors. This prevents incorrectly displaying the major-scale chords for every mode. Guitar positions above use five CAGED-root regions, not claimed textbook copies.</p>
  </section>`;
 }
 function renderHarmony(){
