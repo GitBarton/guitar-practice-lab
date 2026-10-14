@@ -2,6 +2,7 @@ import {APP_VERSION,KEYS,CATEGORIES,SONGS,DRILLS,DRILL_BY_ID,REFERENCES,REFERENC
 import {buildExample,renderTabSvg,renderFretboardSvg,shellShapes,chordDiagramSvg,progressionFor,enclosureGuide,enclosureInstructions,escapeHtml as e,pitchName,keyPc,INTERVALS,buildNotePath} from './music.js';
 import {SongTrackPlayer,songClock} from './song-audio.js';
 import {MODE_FAMILIES,MODE_DEFINITIONS,scaleFor,diatonicSevenths,scaleTabTargets} from './theory-lab.js';
+import {CAGED_REGIONS,positionForMode} from './mode-positions.js';
 import {buildTwoFiveOne,clampHarmonyTempo} from './harmony.js';
 import {ChordBacking} from './backing-audio.js';
 import {loadState,saveState,addRecord,uid,weeklyReport,downloadText,exportCsv,importedSnapshot,validRatingPercent,isHighQualityDrill,ratingDisplay,CloudSync} from './storage.js';
@@ -39,7 +40,7 @@ function latestSong(songId){return state.records.filter(r=>r.kind==='song'&&r.pa
 function todayKey(){return state.settings.selectedKey==='auto'?KEYS[countSessions()%KEYS.length]:state.settings.selectedKey;}
 function showToast(msg){const el=$('toast');if(!el)return;clearTimeout(toastTimeout);el.textContent=msg;el.className='visible';toastTimeout=setTimeout(()=>{el.className='';},3200);}
 const cloud=new CloudSync({state,onUpdate:()=>render(),onStatus:(m,k)=>{cloudMessage=m;cloudKind=k;const msg=$('cloud-status');if(msg){msg.textContent=m;msg.className='status '+k;}const side=$('sidebar-status');if(side){side.textContent=m;}}});
-function shell(content){const r=route(),active=['today','practice','songs','harmony','drills','references','progress'].includes(r.page)?r.page:(r.page==='drill'?'drills':r.page==='song'?'songs':r.page==='reference'?'references':'today');
+function shell(content){const r=route(),active=['today','practice','songs','harmony','modes','drills','references','progress'].includes(r.page)?r.page:(r.page==='drill'?'drills':r.page==='song'?'songs':r.page==='reference'?'references':'today');
  const navHTML=nav.map(([href,text,icon])=>`<a href="#${href}" class="nav-item ${active===href?'active':''}" ${active===href?'aria-current="page"':''}><span class="nav-ic">${ic(icon)}</span>${text}</a>`).join('');
  return `<div class="shell"><aside class="sidebar"><a href="#today" class="brand route-link"><span class="brand-mark">${ic('music')}</span><div><div class="brand-title">Guitar Practice Lab</div><div class="brand-small">Music · Precision · Flow</div></div></a><nav class="nav" aria-label="Main navigation">${navHTML}</nav><div class="side-bottom"><div class="small"><span class="sync-pip ${cloud.user?'good':''}"></span>Practice data</div><p id="sidebar-status">${safe(cloudMessage)}</p><a href="#settings">${ic('settings')} &nbsp; Settings & cloud</a></div></aside><div class="main-wrap"><div class="topbar"><div><span class="eyebrow">Practice Workspace</span></div><div class="top-right">${state.active?tag('Session in progress',true):''}<a href="#releases" class="pill release-link" title="View release notes">v${APP_VERSION} · What's new</a><a class="btn small ghost" href="#settings">${ic('settings')}<span class="desktop-only">Settings</span></a></div></div><main class="page" id="main-content">${content}</main></div></div>`;
 }
@@ -132,13 +133,14 @@ function renderDrillDetail(id){const d=DRILL_BY_ID[id];if(!d)return `${pageHeade
  return `${pageHeader(categoryTitle(d.category),d.title,d.summary,btn(`start-free:${d.id}`,`${ic('play')} practice this drill`,'primary'))}
  <div class="grid-main"><div class="card"><div class="card-header"><h2>Exercise diagram</h2>${tag(key,true)}</div>${isChord?chordBlocks(key):!notes.length?`<div class="alert">A full three-octave path is not available in this key on a 22-fret standard-tuned guitar. Try another key or a two-octave arpeggio.</div>`:`<div class="eyebrow">Tab · D = down, U = up</div><div class="diagram-viewport" style="margin-top:10px">${renderTabSvg(notes)}</div><div class="eyebrow" style="margin-top:20px">Fretboard</div><div class="diagram-viewport" style="margin-top:10px">${renderFretboardSvg(notes,-1,'note')}</div>`}${d.octaves===3?`<p class="alert">Three-octave lines can reach very high frets in some keys. Reduce the range or change key if your guitar or neck comfort makes this impractical.</p>`:''}<div class="divider"></div><h3>How to practice</h3><ol class="instruction-list">${instructions.map(i=>`<li>${safe(i)}</li>`).join('')}</ol>${stageCount(d)?`<h3>Guided stages</h3><ol class="instruction-list">${d.stages.map(stage=>`<li><strong>${safe(stage.title)}:</strong> ${safe(stage.focus)}</li>`).join('')}</ol>`:''} </div><aside class="card"><h3>References</h3>${rec.map(r=>rect(r.title,r.takeaway,'#reference/'+r.id)).join('')||'<p>No specific reference linked.</p>'}<div class="divider"></div><div class="buttons">${btn(`start-free:${d.id}`,'Start solo practice','primary full')}<a class="btn full ghost" href="#drills">Back to library</a></div></aside></div>`;
 }
-let modalFamily='melodic',modalKey='C',modalId='altered',modalStep=-1;
+let modalFamily='melodic',modalKey='C',modalId='altered',modalStep=-1,modalPosition='G';
 function renderModesLab(){
- const scale=scaleFor(modalId,modalKey),notes=scaleTabTargets(scale);
+ const scale=scaleFor(modalId,modalKey),fingering=positionForMode(scale,modalPosition),notes=fingering.notes;
  const choices=MODE_DEFINITIONS.filter(d=>d.family===modalFamily);
  const active=choices.some(d=>d.id===modalId)?modalId:choices[0].id;
  if(active!==modalId){modalId=active;return renderModesLab();}
- const degree=modalStep>=0?Math.min(notes.length-1,modalStep):-1;
+ const degree=modalStep>=0?Math.min(scale.intervals.length-1,modalStep):-1;
+ const highlight=degree>=0?notes.findIndex(note=>note.degreeIndex===degree):-1;
  const chords=diatonicSevenths(modalKey);
  return `${pageHeader('Music theory','Modes & diatonic harmony','An interactive pitch-checked library: hear the interval, visualize the note and practice a target in every key.')}
  <div class="card">
@@ -147,13 +149,22 @@ function renderModesLab(){
   <div class="form-group"><label>Scale or mode</label><select data-theory="mode">${choices.map(m=>`<option value="${m.id}" ${m.id===active?'selected':''}>${safe(m.title)}</option>`).join('')}</select></div>
   <div class="form-group"><label>Root key</label><select data-theory="key">${KEYS.map(key=>`<option value="${key}" ${key===modalKey?'selected':''}>${key}</option>`).join('')}</select></div>
  </div>
+ <div class="mode-position-selector" role="group" aria-label="Select one of five CAGED fretboard regions">
+ <div class="mode-position-heading"><strong>Five fretboard positions</strong><span class="micro muted">Conventional CAGED root landmarks · six strings · 4-fret frames</span></div>
+ <div class="mode-position-buttons">${CAGED_REGIONS.map(shape=>`<button type="button" class="mode-position-button ${modalPosition===shape.id?'active':''}" data-action="mode-position:${shape.id}" aria-pressed="${modalPosition===shape.id}"><strong>${shape.id}</strong><span>${safe(shape.label)}</span></button>`).join('')}</div>
+ <div class="mode-position-caption"><strong>${safe(fingering.label)}</strong> · Frets ${fingering.fretRange.join('–')} · ${safe(fingering.description)} · Root ${safe(modalKey)}.</div>
+ <p class="micro muted">One hand position per shape; no arbitrary B-string position jumps. Suggested fretting fingers: 1 index, 2 middle, 3 ring, 4 pinky (0 = open). Movable note locations, not a claim that an altered or diminished scale forms a major CAGED chord.</p>
+ </div>
  <h2 class="modes-heading">${safe(scale.title)} <span class="pill">${safe(modalKey)} ${safe(scale.chord)}</span></h2>
  <p class="muted">${safe(scale.use)}</p>
  <div class="mode-degree-row">${scale.intervals.map((semitones,i)=>`<button type="button" class="mode-degree ${degree===i?'active':''}" data-action="mode-step:${i}" aria-pressed="${degree===i}">${safe(scale.degrees[i])}<small>${semitones} semitones</small></button>`).join('')}</div>
  <div class="buttons" style="margin:14px 0">${btn('mode-back','← Previous tone','small')}${btn('mode-next','Next tone →','small primary')}${btn('mode-reset','Show all','small ghost')}</div>
- <p role="status" class="micro muted">${degree>=0?'Focused degree '+(degree+1)+' of '+scale.intervals.length+' · '+scale.intervals[degree]+' semitones above '+modalKey:'Select a degree to highlight the guitar position.'} The diagram shows note targets, not a prescribed fingering.</p>
- <div class="diagram-viewport">${renderTabSvg(notes,degree,state.settings.labels)}</div>
- <div class="diagram-viewport" style="margin-top:13px">${renderFretboardSvg(notes,degree,state.settings.labels)}</div>
+ <p role="status" class="micro muted">${degree>=0?'Focused degree '+(degree+1)+' of '+scale.intervals.length+' · '+scale.intervals[degree]+' semitones above '+modalKey:'Select a degree to highlight the guitar position.'} This position has ${notes.length} notes across six strings. The finger numbers below are a suggested one-finger-per-fret layout.</p>
+ <div class="diagram-viewport">${renderTabSvg(notes,highlight,state.settings.labels)}</div>
+ <div class="diagram-viewport" style="margin-top:13px">${renderFretboardSvg(notes,highlight,state.settings.labels)}</div>
+ <div class="mode-position-finger-list" aria-label="Fretting guide by string">
+  ${[5,4,3,2,1,0].map(string=>`<div class="mode-string-row"><strong>${['e','B','G','D','A','E'][string]}</strong><span>${notes.filter(n=>n.string===string).map(n=>`<span class="mode-note-fingering ${n.degreeIndex===0?'is-root':''}" title="${safe(n.name)} · ${safe(n.interval)}"><b>${n.fret}</b><small>${n.finger===0?'open':'finger '+n.finger}</small></span>`).join('')}</span></div>`).join('')}
+ </div>
  </div>
  <section class="card" style="margin-top:18px">
  <h2>Diatonic 7th chords of ${modalKey} major</h2>
@@ -379,6 +390,7 @@ function movePracticeStage(delta){
  saveState(state);render();
 }
 const actions={
+ 'mode-positions-next':()=>{const idx=CAGED_REGIONS.findIndex(s=>s.id===modalPosition);modalPosition=CAGED_REGIONS[(idx+1)%CAGED_REGIONS.length].id;render();},
  'mode-back':()=>{modalStep=Math.max(-1,modalStep-1);render();},
  'mode-next':()=>{const n=scaleFor(modalId,modalKey).intervals.length;modalStep=(modalStep+1)%n;render();},
  'mode-reset':()=>{modalStep=-1;render();},
@@ -432,7 +444,12 @@ function handlePracticeShortcut(ev){
  return false;
 }
 document.addEventListener('keydown',handlePracticeShortcut);
-document.addEventListener('click',async ev=>{const btn=ev.target.closest('[data-action]');if(!btn)return;ev.preventDefault();const name=btn.dataset.action;if(name?.startsWith('mode-step:')){const i=Number(name.slice(10));if(Number.isInteger(i)&&i>=0&&i<scaleFor(modalId,modalKey).intervals.length){modalStep=i;render();}return;}if(name?.startsWith('drill-filter:'))return setDrillCategory(name.slice(13));if(name?.startsWith('start-free:'))return startSession(true,name.slice(11));if(name?.startsWith('song-focus:'))return startSession(true,null,name.slice(11));if(name?.startsWith('save-song:'))return saveSong(name.slice(10));if(name?.startsWith('rating-set:'))return setRatingPercent(Number(name.slice(11)));const handler=actions[name];if(handler){try{await handler();}catch(error){console.error(error);showToast('Action failed: '+error.message);}}});
+document.addEventListener('click',async ev=>{const btn=ev.target.closest('[data-action]');if(!btn)return;ev.preventDefault();const name=btn.dataset.action;if(name?.startsWith('mode-step:')){const i=Number(name.slice(10));if(Number.isInteger(i)&&i>=0&&i<scaleFor(modalId,modalKey).intervals.length){modalStep=i;render();}return;}if(name?.startsWith('mode-position:')){
+ const wanted=name.slice(14);
+ if(CAGED_REGIONS.some(s=>s.id===wanted)){modalPosition=wanted;render();}
+ return;
+}
+ if(name?.startsWith('drill-filter:'))return setDrillCategory(name.slice(13));if(name?.startsWith('start-free:'))return startSession(true,name.slice(11));if(name?.startsWith('song-focus:'))return startSession(true,null,name.slice(11));if(name?.startsWith('save-song:'))return saveSong(name.slice(10));if(name?.startsWith('rating-set:'))return setRatingPercent(Number(name.slice(11)));const handler=actions[name];if(handler){try{await handler();}catch(error){console.error(error);showToast('Action failed: '+error.message);}}});
 document.addEventListener('change',async ev=>{const el=ev.target;
  if(el.dataset.theory){
   const prop=el.dataset.theory;
