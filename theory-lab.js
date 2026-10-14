@@ -27,6 +27,26 @@ export const MODE_DEFINITIONS=[
  ['diminished-hw','minor','Half–whole diminished',[0,1,3,4,6,7,9,10],'7♭9','Dominant diminished; H–W alternating'],
  ['diminished-wh','minor','Whole–half diminished',[0,2,3,5,6,8,9,11],'°7','Fully diminished; W–H alternating']
 ].map(([id,family,title,intervals,chord,use])=>Object.freeze({id,family,title,intervals:Object.freeze(intervals),chord,use}));
+// Scale-degree notation follows each mode's harmonic spelling, not a naïve 1..7 index.
+export const MODE_DEGREES={
+ ionian:['1','2','3','4','5','6','7'],
+ dorian:['1','2','♭3','4','5','6','♭7'],
+ phrygian:['1','♭2','♭3','4','5','♭6','♭7'],
+ lydian:['1','2','3','♯4','5','6','7'],
+ mixolydian:['1','2','3','4','5','6','♭7'],
+ aeolian:['1','2','♭3','4','5','♭6','♭7'],
+ locrian:['1','♭2','♭3','4','♭5','♭6','♭7'],
+ 'melodic-minor':['1','2','♭3','4','5','6','7'],
+ 'dorian-flat2':['1','♭2','♭3','4','5','6','♭7'],
+ 'lydian-augmented':['1','2','3','♯4','♯5','6','7'],
+ 'lydian-dominant':['1','2','3','♯4','5','6','♭7'],
+ 'mixolydian-flat6':['1','2','3','4','5','♭6','♭7'],
+ 'locrian-natural2':['1','2','♭3','4','♭5','♭6','♭7'],
+ altered:['1','♭9','♯9','3','♭5/♯11','♭13','♭7'],
+ 'harmonic-minor':['1','2','♭3','4','5','♭6','7'],
+ 'diminished-hw':['1','♭9','♯9','3','♯11','5','13','♭7'],
+ 'diminished-wh':['1','2','♭3','4','♭5','♭6','6','7']
+};
 export const DIATONIC_QUALITY=['maj7','m7','m7','maj7','7','m7','m7♭5'];
 const DIATONIC_ROLE=['I','ii','iii','IV','V','vi','viiø'];
 const KEY_NAMES={
@@ -47,7 +67,7 @@ export function scaleFor(id,key='C'){
  const def=MODE_DEFINITIONS.find(d=>d.id===id);
  if(!def||!KEYS.includes(key))throw Error('Unsupported musical mode or key');
  const tonic=keyPc(key);
- return {...def,key,pitchClasses:def.intervals.map(semitones=>(tonic+semitones)%12)};
+ return {...def,key,degrees:MODE_DEGREES[id],pitchClasses:def.intervals.map(semitones=>(tonic+semitones)%12)};
 }
 export function diatonicSevenths(key='C'){
  if(!KEYS.includes(key))throw Error('Unsupported tonal center');
@@ -78,6 +98,6 @@ export function scaleTabTargets(scale){
   })[0];
   previous=best;
   return {...best,pc:midi%12,name:noteName(midi),index:i,
-   interval:i===scale.intervals.length?'1 (octave)':String(i+1),pick:i%2?'U':'D'};
+   interval:i===scale.intervals.length?'1 (octave)':scale.degrees[i],pick:i%2?'U':'D'};
  });
 }
