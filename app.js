@@ -118,6 +118,8 @@ function referencePatternControls(d,key){
  return `<section class="reference-pattern-panel"><div class="eyebrow">Reference-backed guitar route · ${safe(key)}</div>
  ${choice}<p class="small muted">${safe(pattern.caption)} Fret range: ${pattern.fretRange.join('–')}.</p>
  ${d.category==='pentatonic'&&pentatonicBox===1?'<p class="micro muted">Box 1 fretting guide: finger 1 = index, 3 = ring, 4 = pinky where reachable comfortably. Never force painful stretches.</p>':''}
+ </section>`;
+}
 function progressSvg(notes,pulse=false){const focus=pulse&&diagramStep<0?0:diagramStep;return `<div class="diagram-viewport ${pulse?'target-tone-display':''}" id="diagram-container">${state.settings.diagram==='fretboard'?renderFretboardSvg(notes,focus,state.settings.labels):renderTabSvg(notes,focus,state.settings.labels)}</div>`;}
 function chordBlocks(key){return `<div class="grid-2">${shellShapes(key).map(c=>`<div style="background:var(--panel2);padding:12px;border-radius:12px;min-width:0"><div class="small muted">${c.label}</div><h3>${safe(c.name)}</h3><div class="diagram-viewport" style="padding:0;min-height:0;border:0">${chordDiagramSvg(c)}</div></div>`).join('')}</div><p class="footnote">These are transposable shell-voicing examples. Some keys use higher positions; choose a comfortable octave and mute each X string.</p>`;}
 function progressionPills(key){return `<div class="buttons">${progressionFor(key).map(p=>`<span class="pill special">${p.role} · ${safe(p.name)}</span>`).join('')}</div>`;}
