@@ -36,10 +36,10 @@ test('octave pairs and Scofield-style dyads are vertically aligned in TAB',()=>{
    assert.equal(notes[i].beat,notes[i+1].beat);
    assert.notEqual(notes[i].string,notes[i+1].string);
   }
-  // Renderer in main currently treats all note objects as sequential; this
-  // study only carries shared beat IDs until the coordinated TAB renderer
-  // fix from PR #33 is merged. Do not claim the visuals already line up.
-  assert.match(renderTabSvg(notes),/<svg/);
+  // PR #33 is now merged: shared beat IDs render as vertically aligned columns.
+  const tab=renderTabSvg(notes);
+  assert.match(tab,/notes in one column play together/);
+  assert.equal((tab.match(/x="104"/g)||[]).length>=2,true,'two simultaneous notes should share the first TAB x position');
  }
 });
 test('original studies reject unsupported keys and IDs',()=>{
