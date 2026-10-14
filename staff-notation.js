@@ -40,51 +40,71 @@ export function notationColumns(notes){
  }
  return {count:columns.length,positions};
 }
-export function renderStaffTabSvg(notes=[],key='C',active=-1){
- const sig=keySignature(key),shown=notes.slice(0,35),{count,positions}=notationColumns(shown);
- const width=Math.max(740,215+count*53),height=305,x0=187,stepPx=6;
- const bottomY=101,staffYs=[53,65,77,89,101],tabYs=[159,181,203,225,247,269];
- let s='<rect width="'+width+'" height="'+height+'" fill="transparent"/>';
- const line=(x1,y1,x2,y2,stroke='currentColor',weight=1,opacity=.7)=>'<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+stroke+'" stroke-width="'+weight+'" opacity="'+opacity+'"/>';
- const txt=(x,y,label,size=14,style='')=>'<text x="'+x+'" y="'+y+'" text-anchor="middle" fill="currentColor" font-family="Georgia,serif" font-size="'+size+'" '+style+'>'+esc(label)+'</text>';
- staffYs.forEach(y=>s+=line(25,y,width-12,y,'var(--fret-line,currentColor)',1.3));
- tabYs.forEach(y=>s+=line(25,y,width-12,y,'var(--fret-line,currentColor)',1.2,.72));
- // Staff treble indicator includes the standard octave-lower mark used by guitar.
- s+=txt(44,106,'𝄞',54)+txt(44,123,'8',12)+txt(42,145,'STAFF',10);
- const sharpSteps=[('F'+5),('C'+5),('G'+5),('D'+5),('A'+4),('E'+5),('B'+4)];
- const flatSteps=['B4','E5','A4','D5','G4','C5','F4'];
- const signatureNotes=sig.fifths>=0?sharpSteps:flatSteps;
- const symbol=sig.fifths>=0?'♯':'♭';
- for(let i=0;i<Math.abs(sig.fifths);i++){
-  const match=/^([A-G])(\d)$/.exec(signatureNotes[i]);
-  const step=Number(match[2])*7+LETTER_INDEX[match[1]];
-  const y=bottomY-(step-(4*7+2))*stepPx;
-  s+=txt(79+i*12,y+7,symbol,25);
- }
- s+=txt(105,145,esc(key)+' major key signature',10);
- const labels=['e','B','G','D','A','E'];
- labels.forEach((label,i)=>s+=txt(16,tabYs[i]+4,label,12));
- const accidentalHistory=new Map();
- shown.forEach((n,i)=>{
-  if(!Number.isInteger(n.string)||n.string<0||n.string>5||!Number.isInteger(n.fret)||n.fret<0||n.fret>22)return;
-  const midi=guitarMidi(n),written=writtenNote(midi,key),x=x0+positions[i]*53;
-  const y=bottomY-(written.step-(4*7+2))*stepPx;
-  // Ledger lines are positioned at staff-line intervals (two diatonic steps).
-  if(y>bottomY){for(let led=bottomY+12;led<=y+1;led+=12)s+=line(x-13,led,x+13,led,'currentColor',1.4);}
-  if(y<staffYs[0]){for(let led=staffYs[0]-12;led>=y-1;led-=12)s+=line(x-13,led,x+13,led,'currentColor',1.4);}
-  const used=accidentalHistory.get(written.letter+written.octave);
-  const accidental=used===written.alter?null:written.accidental;
-  if(accidental)s+=txt(x-18,y+5,accidental,19);
-  accidentalHistory.set(written.letter+written.octave,written.alter);
-  const selected=i===active;
-  const fill=selected?'var(--teal,#389b91)':'currentColor';
-  s+='<ellipse cx="'+x+'" cy="'+y+'" rx="8" ry="5.3" transform="rotate(-15 '+x+' '+y+')" fill="'+fill+'"/>';
-  if(selected)s+='<circle cx="'+x+'" cy="'+y+'" r="13" fill="none" stroke="var(--teal,#389b91)" stroke-width="1.8"/>';
-  const ty=tabYs[n.string];
-  s+='<rect x="'+(x-16)+'" y="'+(ty-10)+'" width="32" height="21" fill="var(--panel-bg,#191b27)"/>';
-  s+=txt(x,ty+5,n.fret,15,'font-family="system-ui,sans-serif" font-weight="700"');
-  if(i===active)s+='<rect x="'+(x-16)+'" y="'+(ty-11)+'" width="32" height="22" rx="5" fill="none" stroke="var(--teal,#389b91)" stroke-width="2"/>';
+// An unbarred pitch-and-fingering display. Without duration data, noteheads are stemless:
+// never imply false quarter notes, time signature, rests or barlines.
+export function renderStaffTabSvg(notes=[],key='C',active=-1,options={}){
+ const sig=keySignature(key),shown=notes.slice(0,48),{count,positions}=notationColumns(shown);
+ const valid=shown.map((n,i)=>{
+  const string=Number(n.string),fret=Number(n.fret);
+  if(!Number.isInteger(string)||string<0||string>5||!Number.isInteger(fret)||fret<0||fret>22)return null;
+  // The fretboard position is the pitch authority; never draw contradictory TAB/notation.
+  const midi=OPENS[string]+fret;
+  return {n,i,string,fret,midi,written:writtenNote(midi,key)};
  });
- s+=txt(width/2,298,'Pitch and fingering alignment only · rhythm/durations are not specified',12,'font-family="system-ui,sans-serif"');
- return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+width+' '+height+'" width="'+width+'" height="'+height+'" role="img" aria-label="'+esc('Guitar treble staff with key signature in '+key+' and aligned six-string tablature')+'" style="display:block;max-width:100%">'+s+'</svg>';
+ const written=valid.filter(Boolean).map(v=>v.written.step);
+ const high=written.length?Math.max(...written):38,low=written.length?Math.min(...written):30;
+ const bottom=Math.max(148,36+(high-30)*6);
+ const staffTop=bottom-48;
+ const tabStart=bottom+Math.max(91,39+(30-low)*6);
+ const height=tabStart+6*22+47;
+ const startX=Math.max(192,125+Math.abs(sig.fifths)*13);
+ const width=Math.max(700,startX+Math.max(1,count)*64+28);
+ const staff=[bottom-48,bottom-36,bottom-24,bottom-12,bottom];
+ const tab=Array.from({length:6},(_,i)=>tabStart+i*22);
+ const line=(x,y,xx,yy,opacity=.78,weight=1)=>'<line x1="'+x+'" y1="'+y+'" x2="'+xx+'" y2="'+yy+'" stroke="var(--fret-line,currentColor)" opacity="'+opacity+'" stroke-width="'+weight+'"/>';
+ const t=(x,y,label,size=13,extra='')=>'<text x="'+x+'" y="'+y+'" text-anchor="middle" fill="currentColor" font-size="'+size+'" font-family="system-ui,sans-serif" '+extra+'>'+esc(label)+'</text>';
+ let body='<rect x="0" y="0" width="'+width+'" height="'+height+'" rx="10" fill="transparent"/>';
+ body+=t(26,23,'STAFF',11,'font-weight="800" letter-spacing="1.2"');
+ body+=t(26,tabStart-14,'TAB',11,'font-weight="800" letter-spacing="1.2"');
+ staff.forEach(y=>{body+=line(24,y,width-22,y,.65,1.5);});
+ tab.forEach(y=>{body+=line(24,y,width-22,y,.68,1.4);});
+ // 8vb treble clef: guitar sounds an octave below written pitch.
+ body+='<text x="35" y="'+(bottom+3)+'" font-family="Noto Music,Segoe UI Symbol,DejaVu Sans,serif" font-size="60" fill="currentColor">𝄞</text>';
+ body+=t(52,bottom+22,'8',11,'font-weight="700"');
+ const signatureNotes=sig.fifths>=0?['F5','C5','G5','D5','A4','E5','B4']:['B4','E5','A4','D5','G4','C5','F4'];
+ const order=sig.fifths>=0?'♯':'♭';
+ for(let i=0;i<Math.abs(sig.fifths);i++){
+  const m=/^([A-G])(\d)$/.exec(signatureNotes[i]);
+  const step=Number(m[2])*7+LETTER_INDEX[m[1]];
+  body+=t(87+i*13,bottom-(step-30)*6+7,order,23,'font-family="Noto Music,Segoe UI Symbol,serif"');
+ }
+ body+=t(118,staffTop-18,key+' major key signature',11,'font-weight="700"');
+ ['e','B','G','D','A','E'].forEach((label,i)=>{body+=t(13,tab[i]+5,label,13,'font-weight="750"');});
+ const history=new Map(),clickPrefix=/^[a-z][a-z0-9-]*$/.test(options.actionPrefix||'')?options.actionPrefix:null;
+ for(const row of valid){
+  if(!row)continue;
+  const {n,i,string,fret,midi,written:note}=row,x=startX+positions[i]*64;
+  const y=bottom-(note.step-30)*6,tabY=tab[string],focused=i===active;
+  const noteLabel=note.letter+(note.alter===1?'♯':note.alter===-1?'♭':'')+note.octave;
+  const histKey=note.letter+note.octave;
+  const old=history.has(histKey)?history.get(histKey):sig.alters[note.letter];
+  const accidental=old===note.alter?'':note.alter===0?'♮':note.alter===1?'♯':'♭';
+  if(accidental)body+=t(x-21,y+6,accidental,21,'font-family="Noto Music,Segoe UI Symbol,serif"');
+  history.set(histKey,note.alter);
+  if(y>bottom)for(let ly=bottom+12;ly<=y+.5;ly+=12)body+=line(x-15,ly,x+15,ly,1,1.5);
+  if(y<staffTop)for(let ly=staffTop-12;ly>=y-.5;ly-=12)body+=line(x-15,ly,x+15,ly,1,1.5);
+  const action=clickPrefix?' data-action="'+clickPrefix+':'+i+'" role="button" tabindex="0" aria-label="Focus '+esc(noteLabel+' on '+['high E','B','G','D','A','low E'][string]+' string fret '+fret)+'"':'';
+  body+='<g class="score-note'+(focused?' selected':'')+'" data-note-index="'+i+'"'+action+'>';
+  if(focused)body+='<rect x="'+(x-25)+'" y="'+(staffTop-8)+'" width="50" height="'+(tab[5]-staffTop+18)+'" rx="8" fill="var(--teal)" opacity=".10"/>';
+  body+='<ellipse cx="'+x+'" cy="'+y+'" rx="8.1" ry="5.8" transform="rotate(-17 '+x+' '+y+')" fill="'+(focused?'var(--teal)':'var(--text,currentColor)')+'"/>';
+  if(focused)body+='<circle cx="'+x+'" cy="'+y+'" r="13" fill="none" stroke="var(--teal)" stroke-width="1.8"/>';
+  body+='<rect x="'+(x-18)+'" y="'+(tabY-11)+'" width="36" height="22" rx="6" fill="var(--panel-bg,#292737)" stroke="'+(focused?'var(--teal)':'transparent')+'" stroke-width="2"/>';
+  body+=t(x,tabY+5,fret,15,'font-weight="800"');
+  // Label the sounded pitch; notation above follows the octave-transposing guitar convention.
+  body+=t(x,tab[5]+29,noteLabel,10,'opacity=".77"');
+  if(clickPrefix)body+='<rect x="'+(x-23)+'" y="'+(staffTop-8)+'" width="46" height="'+(tab[5]-staffTop+20)+'" fill="transparent" pointer-events="all"/>';
+  body+='</g>';
+ }
+ body+=t(width/2,height-12,'Pitch and fingering alignment only · rhythm/durations are not specified',11,'opacity=".7"');
+ return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+width+' '+height+'" width="'+width+'" height="'+height+'" class="guitar-staff-tab" role="img" aria-label="'+esc('Guitar treble staff with key signature in '+key+' and aligned six-string tablature')+'" style="display:block;width:'+width+'px;max-width:none">'+body+'</svg>';
 }
