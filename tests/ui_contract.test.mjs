@@ -111,7 +111,7 @@ test('practice UI shows keyboard hints and respects stages for Enter',()=>{
 });
 
 test('existing pentatonic and dom7 drills use verified selectable guitar patterns',()=>{
- assert.match(app,/import \{referencePentatonicBox,referenceDominant7\} from '\.\/reference-patterns\.js'/);
+ assert.match(app,/import \{referencePentatonicBox,referencePentatonicSkip,referenceDominant7\} from '\.\/reference-patterns\.js'/);
  assert.match(app,/function referencePattern\(d,key\)/);
  assert.match(app,/function drillDiagramNotes\(d,key,stage\)/);
  assert.match(app,/pentatonic-box:/);
