@@ -94,6 +94,22 @@ export const DRILLS = [
 ]}),
  D('penta-minor','Minor pentatonic · melodic cells','pentatonic',4,'Use 1–♭3–4–5–♭7 without a repetitive box sound.', ['Change rhythm more than notes.','Create a 2-bar question and a 2-bar answer.','Practice a controlled rest between the phrases.'],'scale',{quality:'pentMinor',reference:['arpeggios']}),
  D('penta-string','Pentatonic string-skipping sequence','pentatonic',4,'A controlled skip is more important than speed.', ['Extract four notes from the selected pentatonic shape.','Play across non-adjacent strings using alternate picking.','Make the last two notes a melodic answer.'],'scale',{quality:'pentMinor',reference:['muting']}),
+
+ D('study-chromatic-target','Chromatic enclosure → dominant third','jazz',7,'Upper and lower chromatic neighbours resolve onto the third of V7, followed by the third of I.',[
+ 'In C major use G7: C–B♭–B; the final B is the major third of G7. Transpose the four-note figure to today’s key.',
+ 'Play neighbour tones softly and accent the target. The diagram maps pitches, not a prescribed rhythm.',
+ 'Conclude with the I chord’s third, then repeat with a different rhythmic placement.'
+ ],'reference-chromatic',{reference:['chromatic','ii-v-i']}),
+ D('study-guide-tones','Guide-tone pathway: ii–V–I','jazz',7,'Connect each chord’s third and seventh across ii–V–I, using small voice-leading movements.',[
+ 'Over Dm7 → G7 → Cmaj7, identify F/C, B/F and E/B respectively. Transpose to today’s key.',
+ 'Alternate thirds and sevenths; anticipate the next chord before moving.',
+ 'Repeat as a sparse two-bar melody; then play over a metronome with rests.'
+ ],'reference-guides',{reference:['ii-v-i','arpeggios']}),
+ D('study-tritone-sub','Tritone substitution: common guide tones','jazz',7,'Compare V7 with ♭II7: both contain the same tritone, respelled.',[
+ 'In C, compare G7 (B and F) with D♭7 (C♭ and F); the guide-tone pitch classes are shared.',
+ 'Follow Dm7 → D♭7 → Cmaj7. The diagram shows a selected guide-tone line, not the entire chord voicings.',
+ 'Resolve chromatically into I and alternate conventional V7 and substitute ♭II7 by ear.'
+ ],'reference-tritone',{reference:['ii-v-i','chromatic']}),
  D('jazz-251','ii–V–I chord-tone connection','jazz',10,'Link the 3rds and 7ths, then shape a two-bar phrase.', ['Sing the third of ii and find the nearest seventh of V.','Continue by semitone or whole-step to a guide tone on I.','Play one restrained melodic response with a rest.'],'ii-v-i',{reference:['ii-v-i','arpeggios']}),
  D('jazz-guide','Guide-tone voice leading','jazz',10,'Make guide-tone motion audible without extra notes.', ['Outline only 3rds and 7ths through ii–V–I.','Sing the resolution before playing.','Add one approach note when the basic line is secure.'],'ii-v-i',{reference:['ii-v-i']}),
  D('jazz-enclosure','Chromatic enclosure of the V7 third','jazz',10,'Surround the dominant chord’s major third with its upper and lower chromatic neighbors, then resolve on a strong beat.', ['In C major, V7 is G7 and its major third is B.','Play C (a semitone above B), then B♭ (a semitone below), then B (the target) on a strong beat.','Transpose to today’s key and resolve a short V7 phrase into the I chord.'],'enclosure',{reference:['chromatic','barry']}),
