@@ -124,3 +124,19 @@ test('interactive modes route, key/mode selectors and active note navigation are
  assert.match(css,/\.mode-diatonic-grid/);
  assert.match(sw,/'\.\/theory-lab\.js'/);
 });
+
+test('Modes & Harmony uses five selectable CAGED four-fret regions rather than the old route heuristic',()=>{
+ const position=readFileSync(new URL('../mode-positions.js',import.meta.url),'utf8');
+ assert.match(app,/import \{CAGED_REGIONS,positionForMode\} from '\.\/mode-positions\.js'/);
+ assert.match(app,/positionForMode\(scale,modalPosition\)/);
+ assert.match(app,/data-action="mode-position:/);
+ assert.match(app,/aria-pressed=/);
+ assert.match(app,/class="mode-position-selector"/);
+ assert.match(app,/mode-string-row/);
+ assert.match(app,/n\.finger===0\?'open':'finger '/);
+ assert.match(css,/\.mode-position-buttons\{display:grid/);
+ assert.match(css,/\.mode-string-row/);
+ assert.match(sw,/'\.\/mode-positions\.js'/);
+ assert.match(position,/CAGED_REGIONS/);
+ assert.doesNotMatch(position,/audio|microphone|localStorage/i);
+});
