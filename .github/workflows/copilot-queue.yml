@@ -1,0 +1,30 @@
+name: Copilot feedback coding queue
+on:
+  # Check every three hours. Only one issue is assigned at a time.
+  schedule:
+    - cron: '31 */3 * * *'
+  # Also permits a one-click run from Actions.
+  workflow_dispatch:
+
+# Least privilege for the Actions token; Copilot assignment uses a separate
+# user-owned fine-grained PAT stored only as a repository Actions secret.
+permissions:
+  contents: read
+
+concurrency:
+  group: guitar-practice-copilot-queue
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    if: ${{ github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assign one eligible feedback issue to Copilot
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          COPILOT_AGENT_TOKEN: ${{ secrets.COPILOT_AGENT_TOKEN }}
+        run: python3 scripts/dispatch_copilot.py
