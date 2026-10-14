@@ -3,6 +3,7 @@ import {buildExample,renderTabSvg,renderFretboardSvg,shellShapes,chordDiagramSvg
 import {SongTrackPlayer,songClock} from './song-audio.js';
 import {buildTwoFiveOne,clampHarmonyTempo} from './harmony.js';
 import {ChordBacking} from './backing-audio.js';
+import {buildPracticeDashboard,DASHBOARD_RANGES} from './dashboard.js';
 import {loadState,saveState,addRecord,uid,weeklyReport,downloadText,exportCsv,importedSnapshot,validRatingPercent,isHighQualityDrill,ratingDisplay,CloudSync} from './storage.js';
 const state=loadState();
 // Public URL/key defaults survive browser-site-data deletion. The private auth session does not.
@@ -21,6 +22,7 @@ const $=id=>document.getElementById(id);
 const safe=(s)=>e(s??'');
 const categoryTitle=cat=>CATEGORIES.find(c=>c[0]===cat)?.[1]||cat;
 let selectedDrillCategory='all',drillSearchText='';
+let selectedHomeRange=14,selectedHomeDay=null;
 const categoryCount=cat=>cat==='all'?DRILLS.length:DRILLS.filter(d=>d.category===cat).length;
 const iconPaths={home:'<path d="m3 11 9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',play:'<path d="m8 5 11 7-11 7z"/>',pause:'<rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/>',music:'<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',library:'<path d="M4 5h5v16H4zM10 3h5v18h-5zM16 7h4v14h-4z"/>',book:'<path d="M12 7c-3-2-6-2-10-1v14c4-1 7-1 10 1 3-2 6-2 10-1V6c-4-1-7-1-10 1zM12 7v14"/>',chart:'<path d="M4 20V10h4v10zM10 20V4h4v16zM16 20v-7h4v7z"/>',settings:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>',clock:'<circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/>',arrow:'<path d="M5 12h14m-6-6 6 6-6 6"/>',check:'<path d="m4 12 5 5L20 6"/>',chevron:'<path d="m9 18 6-6-6-6"/>',minus:'<path d="M5 12h14"/>',plus:'<path d="M12 5v14M5 12h14"/>',cloud:'<path d="M4 16a4 4 0 0 1 1-8 7 7 0 0 1 13 2 4 4 0 0 1 1 8H5"/>',download:'<path d="M12 3v12m-5-5 5 5 5-5M4 18v3h16v-3"/>',refresh:'<path d="M20 11a8 8 0 0 0-14-5L3 9m0-5v5h5M4 13a8 8 0 0 0 14 5l3-3m0 5v-5h-5"/>',headphones:'<path d="M3 15V12a9 9 0 0 1 18 0v3M3 15h5v6H5a2 2 0 0 1-2-2v-4zm18 0h-5v6h3a2 2 0 0 0 2-2v-4z"/>',target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',upload:'<path d="M12 21V9m-5 5 5-5 5 5M4 6V3h16v3"/>',sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>'};
 const ic=(name)=>`<span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24">${iconPaths[name]||iconPaths.target}</svg></span>`;
@@ -46,13 +48,87 @@ function render(){document.body.dataset.theme=state.settings.theme;const r=route
  switch(r.page){case 'today':html=renderToday();break;case 'practice':html=renderPractice();break;case 'drills':html=renderDrills();break;case 'drill':html=renderDrillDetail(r.id);break;case 'songs':html=renderSongs();break;case 'harmony':html=renderHarmony();break;case 'song':html=renderSongDetail(r.id);break;case 'references':html=renderReferences();break;case 'reference':html=renderReferenceDetail(r.id);break;case 'progress':html=renderProgress();break;case 'releases':html=renderReleases();break;case 'settings':html=renderSettings();break;default:html=renderToday();}
  $('app').innerHTML=shell(html);updateClock();updateSongTrackUI();if(r.page==='drills')filterDrills();}
 function queueOverview(s){return `<div class="list">${s.entries.map((entry,i)=>{const d=DRILL_BY_ID[entry.id];return `<div class="step-row ${entry.done?'done':''}"><div class="step-n">${entry.done?'✓':i+1}</div><div class="step-info"><div class="step-name">${safe(d?.title||'Song practice')}</div><div class="step-min">${safe(d?.category?categoryTitle(d.category):'Repertoire')} · ${entry.minutes} min</div></div><span class="small muted">${entry.minutes}:00</span></div>`;}).join('')}</div>`;}
-function renderToday(){const complete=countSessions(),recent=lastSeven(),sessions=recent.filter(r=>r.kind==='session'),minutes=sessions.reduce((x,s)=>x+(Number(s.payload?.durationMinutes)||0),0),pctScores=recent.filter(r=>r.kind==='drill').map(r=>validRatingPercent(r.payload)).filter(n=>n!==null),avgQuality=pctScores.length?Math.round(pctScores.reduce((a,b)=>a+b,0)/pctScores.length):null;
+function renderHomeDashboard(){
+ const report=buildPracticeDashboard(state.records,new Date(),selectedHomeRange),summary=report.summary,days=report.days;
+ const chosen=days.find(day=>day.key===selectedHomeDay)||[...days].reverse().find(day=>day.practiced)||days.at(-1);
+ const maxSeconds=Math.max(60,...days.map(day=>day.seconds));
+ const metric=(name,value,hint)=>`<div class="metric"><div class="label">${safe(name)}</div><div class="number">${safe(value)}</div><div class="micro muted">${safe(hint)}</div></div>`;
+ const changes=summary.weekDifference>0?'+ '+summary.weekDifference+' min vs previous 7 days':
+  summary.weekDifference<0?summary.weekDifference+' min vs previous 7 days':'Same time as previous 7 days';
+ const metrics=`<div class="metrics home-kpis" aria-label="Home practice statistics">
+  ${metric('Today',summary.todayMinutes+' min',report.today.drills+' exercises recorded')}
+  ${metric('Last 7 days',summary.weekMinutes+' min',changes)}
+  ${metric('Consistency',summary.weekDays+' / 7','Days practiced in the past 7 days')}
+  ${metric('Current streak',summary.streak+' day'+(summary.streak===1?'':'s'),'Today or yesterday may start the streak')}
+  ${metric('Average quality',summary.averageQuality===null?'—':summary.averageQuality+'%',summary.ratedCount+' self-rated attempts · last 7 days')}
+  ${metric('Exercises logged',summary.weekDrills,summary.weekSessions+' completed sessions · last 7 days')}
+ </div>`;
+ const columns=days.map(day=>{
+  const selected=day.key===chosen?.key,level=day.seconds?Math.max(6,Math.round(day.seconds/maxSeconds*100)):0;
+  const description=day.fullLabel+': '+day.minutes+' minutes, '+day.drills+' exercises, '+day.sessions+' sessions';
+  return `<button type="button" class="home-day-column ${selected?'selected':''} ${day.practiced?'practiced':''}" data-action="home-day:${day.key}" aria-label="${safe(description)}" aria-pressed="${selected}">
+   <span class="home-day-total">${day.practiced?day.minutes+'m':'—'}</span>
+   <span class="home-day-bar-track"><span class="home-day-bar-fill" style="height:${level}%"></span></span>
+   <span class="home-day-weekday">${safe(day.weekday)}</span><span class="home-day-number">${Number(day.key.slice(-2))}</span>
+  </button>`;
+ }).join('');
+ const attempts=chosen?.attempts||[];
+ const logRows=attempts.slice(0,8).map(item=>`<div class="home-day-attempt">
+  <div><strong>${safe(item.title)}</strong><div class="micro muted">${safe(item.category)}${item.key?' · '+safe(item.key):''}${item.bpm?' · '+item.bpm+' BPM':''}</div></div>
+  <span class="home-day-attempt-value">${item.minutes}m ${item.quality===null?'':'· '+item.quality+'%'}</span>
+ </div>`).join('');
+ const detail=`<div class="home-day-details" aria-live="polite">
+  <div class="eyebrow">Selected day</div>
+  <h3>${safe(chosen?.fullLabel||'Today')}</h3>
+  <p class="home-day-detail-summary">${chosen?.minutes||0} recorded min · ${chosen?.drills||0} drills · ${chosen?.sessions||0} sessions ${chosen?.avgQuality===null?'':'· '+chosen.avgQuality+'% avg quality'}</p>
+  ${attempts.length?logRows+(attempts.length>8?'<p class="micro muted">Showing the latest 8 exercises for this day.</p>':''):
+   '<div class="empty">No individual exercises logged this day. Select another day to see its practice history.</div>'}
+ </div>`;
+ const focusTotal=summary.categoryBreakdown.reduce((sum,item)=>sum+item.seconds,0);
+ const categories=summary.categoryBreakdown.slice(0,5).map(item=>{
+  const pct=Math.round(item.seconds/Math.max(1,focusTotal)*100);
+  return `<div class="home-focus-line"><div class="home-focus-label"><span>${safe(item.name)}</span><strong>${item.minutes}m</strong></div><div class="home-focus-track"><div class="home-focus-fill" style="width:${pct}%"></div></div></div>`;
+ }).join('');
+ const active=state.active;
+ const activeMarkup=active?(()=>{
+  const finished=active.entries.filter(entry=>entry.done).length,total=active.entries.length;
+  const planned=active.entries.reduce((sum,entry)=>sum+entry.minutes,0);
+  const pct=total?Math.round(finished/total*100):0;
+  return `<div class="home-active-summary"><h3>Current session</h3><p>${finished} of ${total} exercise blocks completed · ${planned} minutes planned</p><div class="home-focus-track"><div class="home-focus-fill" style="width:${pct}%"></div></div><a href="#practice">Resume this session →</a></div>`;
+ })():`<p>You've practiced on <strong>${summary.weekDays} of the last 7 days</strong>.</p><p class="micro muted">The timeline includes standalone drill practice as well as exercises inside full sessions.</p>`;
+ return metrics+`<section class="card home-timeline" aria-label="Daily practice history">
+  <div class="card-header home-timeline-head"><div><div class="eyebrow">Practice history</div><h2>Daily progress</h2></div>
+   <div class="home-range-options" role="group" aria-label="Days shown">
+    ${DASHBOARD_RANGES.map(n=>`<button type="button" data-action="home-range:${n}" class="home-range-button ${selectedHomeRange===n?'active':''}" aria-pressed="${selectedHomeRange===n}">${n} days</button>`).join('')}
+   </div>
+  </div>
+  <div class="home-dashboard-grid">
+   <div><div class="home-days-scroller"><div class="home-days-chart" style="--day-count:${days.length}">${columns}</div></div>
+    <p class="micro muted">Each bar represents actual logged practice time. Choose a day to inspect its exercises.</p></div>
+   ${detail}
+  </div>
+ </section>
+ <div class="home-insight-grid">
+  <section class="card"><div class="card-header"><h3>Practice focus</h3><span class="micro muted">Past 7 days</span></div>
+   ${categories||'<div class="empty">Complete an exercise to see how your practice time is distributed.</div>'}
+   ${summary.topCategory?`<p class="micro muted" style="margin-top:11px">Most time: ${safe(summary.topCategory)}. Based on logged exercise duration.</p>`:''}
+  </section>
+  <section class="card"><div class="card-header"><h3>Weekly overview</h3><span class="micro muted">Rolling 7 days</span></div>
+   <div class="home-week-stat"><span>High-quality attempts (90–100%)</span><strong>${summary.highQualityRate===null?'—':summary.highQualityRate+'%'}</strong></div>
+   <div class="home-week-stat"><span>Completed sessions</span><strong>${summary.weekSessions}</strong></div>
+   <div class="home-week-stat"><span>Previous 7 days</span><strong>${summary.priorWeekMinutes} min</strong></div>
+   ${activeMarkup}
+  </section>
+ </div>
+ <p class="footnote home-dashboard-note">Daily totals use recorded drill timers, not planned session lengths. Historic session totals are used only where no timed drills exist, avoiding double-counting. Dates use your local calendar; quality percentages are your own assessments. <a href="#progress">Detailed history and exports →</a></p>`;
+}
+function renderToday(){const complete=countSessions();
  const mode=state.settings.selectedMode,duration=SESSION_DURATIONS.includes(Number(state.settings.selectedDuration))?Number(state.settings.selectedDuration):45,preview=makeSession(complete,mode,state.settings.selectedSong,duration);if(state.settings.selectedKey!=='auto')preview.key=state.settings.selectedKey;
  const modeLabel=SESSION_MODES.find(([id])=>id===mode)?.[1]||'Technique';
  const planDuration=state.active?state.active.entries.reduce((sum,e)=>sum+e.minutes,0):preview.durationMinutes;
  const top=state.active?`<section class="hero"><div class="eyebrow">Resume where you left off</div><h2>Session in progress · ${safe(state.active.key)}</h2><p>${planDuration} minutes planned · ${safe(SESSION_MODES.find(([id])=>id===state.active.mode)?.[1]||'Practice')} · your progress is saved locally.</p><div class="buttons">${btn('resume-session',`${ic('play')} Resume practice`,'primary')}</div></section>`:`<section class="hero"><div class="eyebrow">A session built around your focus</div><h2>${safe(modeLabel)} · ${duration} minutes</h2><p>Your plan combines ${preview.entries.length} focused blocks in ${safe(preview.key)}. Choose the duration and type of work you want to prioritize.</p><div class="buttons">${btn('start-session',`${ic('play')} Start ${duration}-minute session`,'primary')}${tag('Day '+(complete+1)+' · '+modeLabel)}</div></section>`;
  return `${pageHeader('Home','Ready to practice?','A consistent system for technique, jazz language and live repertoire.')}
- <div class="metrics"><div class="metric"><div class="label">Sessions · last 7 days</div><div class="number">${sessions.length}</div></div><div class="metric"><div class="label">Minutes · last 7 days</div><div class="number">${minutes}</div></div><div class="metric"><div class="label">Average quality · last 7 days</div><div class="number">${avgQuality===null?'—':avgQuality+'%'}</div><div class="micro muted">${pctScores.length} percentage rating(s)</div></div></div>
+ ${renderHomeDashboard()}
  <div class="grid-main"><div>${top}<div style="height:20px"></div><div class="card"><div class="card-header"><h2>Today's ${planDuration}-minute plan</h2>${tag('Key '+preview.key,true)}</div>${queueOverview(state.active||preview)}</div></div>
  <aside class="card"><div class="card-header"><h3>Session setup</h3>${ic('target')}</div><div class="form-group"><label for="mode">Practice mode</label><select id="mode" data-setting="selectedMode" ${state.active?'disabled':''}>${SESSION_MODES.map(([id,label])=>`<option value="${id}" ${mode===id?'selected':''}>${safe(label)}</option>`).join('')}</select></div><div class="form-group" style="margin-top:13px"><label for="duration">Session length</label><select id="duration" data-setting="selectedDuration" ${state.active?'disabled':''}>${SESSION_DURATIONS.map(n=>`<option value="${n}" ${duration===n?'selected':''}>${n} minutes${n===45?' · original':''}</option>`).join('')}</select></div><div class="form-group" style="margin-top:13px"><label for="key">Primary key</label><select id="key" data-setting="selectedKey" ${state.active?'disabled':''}><option value="auto" ${state.settings.selectedKey==='auto'?'selected':''}>Auto · circle of fourths</option>${KEYS.map(k=>`<option value="${k}" ${state.settings.selectedKey===k?'selected':''}>${k}</option>`).join('')}</select></div><div class="form-group" style="margin-top:13px"><label for="song">Repertoire focus</label><select id="song" data-setting="selectedSong" ${state.active?'disabled':''}>${SONGS.map(s=>`<option value="${s.id}" ${state.settings.selectedSong===s.id?'selected':''}>${safe(s.title)}</option>`).join('')}</select></div><div class="divider"></div><div class="eyebrow">Key rotation</div><div class="key-grid" style="margin-top:12px">${KEYS.map((k,i)=>`<div class="key-tile ${preview.key===k?'current':''}">${k.replace('b','♭')}</div>`).join('')}</div><p class="footnote">One primary key per practice day. A full rotation takes 12 sessions; override the key when needed.</p></aside></div>`;
 }
@@ -398,7 +474,9 @@ function handlePracticeShortcut(ev){
  return false;
 }
 document.addEventListener('keydown',handlePracticeShortcut);
-document.addEventListener('click',async ev=>{const btn=ev.target.closest('[data-action]');if(!btn)return;ev.preventDefault();const name=btn.dataset.action;if(name?.startsWith('drill-filter:'))return setDrillCategory(name.slice(13));if(name?.startsWith('start-free:'))return startSession(true,name.slice(11));if(name?.startsWith('song-focus:'))return startSession(true,null,name.slice(11));if(name?.startsWith('save-song:'))return saveSong(name.slice(10));if(name?.startsWith('rating-set:'))return setRatingPercent(Number(name.slice(11)));const handler=actions[name];if(handler){try{await handler();}catch(error){console.error(error);showToast('Action failed: '+error.message);}}});
+document.addEventListener('click',async ev=>{const btn=ev.target.closest('[data-action]');if(!btn)return;ev.preventDefault();const name=btn.dataset.action;if(name?.startsWith('home-range:')){const days=Number(name.slice(11));if(DASHBOARD_RANGES.includes(days)){selectedHomeRange=days;selectedHomeDay=null;render();}return;}
+ if(name?.startsWith('home-day:')){const day=name.slice(9);if(/^\d{4}-\d{2}-\d{2}$/.test(day)){selectedHomeDay=day;render();}return;}
+ if(name?.startsWith('drill-filter:'))return setDrillCategory(name.slice(13));if(name?.startsWith('start-free:'))return startSession(true,name.slice(11));if(name?.startsWith('song-focus:'))return startSession(true,null,name.slice(11));if(name?.startsWith('save-song:'))return saveSong(name.slice(10));if(name?.startsWith('rating-set:'))return setRatingPercent(Number(name.slice(11)));const handler=actions[name];if(handler){try{await handler();}catch(error){console.error(error);showToast('Action failed: '+error.message);}}});
 document.addEventListener('change',async ev=>{const el=ev.target;
  if(el.dataset.harmonySetting){const key=el.dataset.harmonySetting;
   harmonySettings[key]=key==='click'?el.checked:key==='barsPerChord'?Number(el.value):key==='volume'?Number(el.value):el.value;

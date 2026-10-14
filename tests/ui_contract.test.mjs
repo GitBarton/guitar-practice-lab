@@ -109,3 +109,32 @@ test('practice UI shows keyboard hints and respects stages for Enter',()=>{
  assert.match(app,/<kbd>Enter<\/kbd> Next stage/);
  assert.match(css,/\.practice-shortcuts/);
 });
+
+test('Home offers selectable 7/14/30-day history, detailed exercise logs and real practice statistics',()=>{
+ assert.match(app,/import \{buildPracticeDashboard,DASHBOARD_RANGES\} from '\.\/dashboard\.js'/);
+ assert.match(app,/function renderHomeDashboard\(\)/);
+ assert.match(app,/buildPracticeDashboard\(state\.records,new Date\(\),selectedHomeRange\)/);
+ assert.match(app,/data-action="home-range:/);
+ assert.match(app,/data-action="home-day:/);
+ assert.match(app,/aria-pressed=/);
+ assert.match(app,/aria-live="polite"/);
+ assert.match(app,/home-days-chart/);
+ assert.match(app,/home-day-details/);
+ assert.match(app,/home-focus-line/);
+ assert.match(app,/home-week-stat/);
+ assert.match(app,/renderHomeDashboard\(\)/);
+ assert.match(css,/\.home-dashboard-grid/);
+ assert.match(css,/\.home-day-bar-track/);
+ assert.match(css,/\.home-days-scroller\{overflow-x:auto/);
+ assert.match(css,/\.home-kpis/);
+});
+test('Home dashboard uses real historical records and no external data API',()=>{
+ const source=readFileSync(new URL('../dashboard.js',import.meta.url),'utf8');
+ assert.match(source,/records=\[\]/);
+ assert.match(source,/validRatingPercent/);
+ assert.match(source,/fullPracticeDays/);
+ assert.match(source,/sessionsWithTimedDrills/);
+ assert.match(source,/localDayKey/);
+ assert.doesNotMatch(source,/fetch\(|XMLHttpRequest|localStorage\./);
+ assert.match(sw,/'\.\/dashboard\.js'/);
+});
