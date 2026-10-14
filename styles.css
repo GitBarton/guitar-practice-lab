@@ -273,3 +273,7 @@ body[data-theme="light"] .hero{box-shadow:0 17px 40px #60413a25}
 .manual-song-creator .card-header{flex-wrap:wrap;gap:10px}
 .song-item .song-title .badge{margin-left:8px;font-size:10px}
 @media(max-width:620px){.manual-song-creator{padding:14px}.manual-song-creator .form-group{min-width:0;flex-basis:100%}}
+
+/* Score + TAB unified visual; keep staff and TAB together on narrow displays. */
+.score-viewport{overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-gutter:stable;min-height:0;padding:12px 14px}.score-viewport svg.guitar-staff-tab{max-width:none;width:max-content;min-width:100%;height:auto}.guitar-staff-tab .score-note[role="button"]{cursor:pointer}.guitar-staff-tab .score-note[role="button"]:focus-visible{outline:none;filter:drop-shadow(0 0 5px var(--teal))}.guitar-staff-tab .score-note.selected{filter:drop-shadow(0 0 3px var(--teal))}
+@media(max-width:770px){.score-viewport{padding:8px;scrollbar-gutter:auto}}
