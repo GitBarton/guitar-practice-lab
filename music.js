@@ -60,8 +60,25 @@ export function buildExample(kind,key='C',quality='maj7',octaves=2,position='low
   cell('C4',2,5,'D'),cell('D4',2,7,'H'),cell('C4',2,5,'P')
  ];
  // Pairs are visual fret targets; strike together when the drill instructions say so.
- if(kind==='double-stop')return [cell('C4',2,5,'D'),cell('E4',1,5,'D')];
- if(kind==='octave')return [cell('C3',5,8,'D'),cell('C4',3,10,'D')];
+ if(kind==='double-stop')return [{...cell('C4',2,5,'D'),beat:0},{...cell('E4',1,5,'D'),beat:0}];
+ if(kind==='octave')return [{...cell('C3',5,8,'D'),beat:0},{...cell('C4',3,10,'D'),beat:0}];
+ // Interval-recall and responsive guide-tone exercises use actual pitch candidates.
+ if(kind==='circle-fourths'||kind==='circle-fifths'||kind==='circle-recall'){
+  const root=keyPc(key),step=kind==='circle-fifths'?7:5;
+  const pitches=Array.from({length:5},(_,i)=>(root+i*step)%12);
+  return pitches.map((pc,i)=>{
+   // Place notes within a compact readable C4–B4 register; pitch classes are exact.
+   const midi=60+pc,candidates=pitchCandidates(midi),position=candidates.find(p=>p.string===2)||candidates[0];
+   if(!position)return null;
+   return {...position,midi,pc,name:pitchName(pc),pick:i%2?'U':'D',index:i,interval:i===0?'1':kind==='circle-fifths'?'5':'4'};
+  }).filter(Boolean);
+ }
+ if(kind==='target-third'||kind==='target-seventh'||kind==='target-root'){
+  const root=keyPc(key),offset=kind==='target-third'?11:kind==='target-seventh'?5:0;
+  const targetPc=(root+offset)%12,midi=60+targetPc,positions=pitchCandidates(midi);
+  const position=positions.find(p=>p.string===2)||positions[0];
+  return position?[{...position,midi,pc:targetPc,name:pitchName(targetPc),pick:'D',index:0,interval:kind==='target-third'?'3 of V':kind==='target-seventh'?'b7 of V':'1 of I'}]:[];
+ }
  if(kind==='skip')return [cell('D',4,5,'D'),cell('C',2,5,'U'),cell('F',1,6,'D'),cell('C',2,5,'U')];
  if(kind==='wide')return [cell('G',3,5,'D'),cell('A',0,5,'U'),cell('G',3,5,'D'),cell('A',0,5,'U')];
  if(kind==='single')return [cell('C',2,5,'D'),cell('C',2,5,'U'),cell('C',2,5,'D'),cell('C',2,5,'U')];
@@ -99,17 +116,35 @@ export function buildExample(kind,key='C',quality='maj7',octaves=2,position='low
 function svgWrap(content,w,h,label){return `<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${escapeHtml(label)}" viewBox="0 0 ${w} ${h}" style="max-width:100%;display:block" width="${w}" height="${h}">${content}</svg>`;}
 const svgText=(x,y,text,cls='',size=12)=>`<text x="${x}" y="${y}" fill="currentColor" font-size="${size}" font-family="system-ui, sans-serif" text-anchor="middle" class="${cls}">${escapeHtml(text)}</text>`;
 export function renderTabSvg(notes=[],active=-1,labels='note'){
- const n=Math.min(notes.length,35),w=Math.max(640,100+n*53),h=226;let body=`<rect width="${w}" height="${h}" rx="12" fill="transparent"/>`;
- for(let s=0;s<6;s++){const y=46+s*23;body+=`<line x1="72" y1="${y}" x2="${w-15}" y2="${y}" stroke="var(--fret-line,#687785)" stroke-width="1" opacity=".63"/>${svgText(35,y+4,STRING_NAMES[s])}`;}
- notes.slice(0,n).forEach((note,i)=>{const x=104+i*53,y=46+note.string*23,highlight=active===i;
- body+=`<rect x="${x-20}" y="${y-15}" width="40" height="30" fill="var(--panel-bg,#171f2d)"/>`;
- body+=`<rect x="${x-19}" y="${y-16}" width="38" height="32" rx="8" fill="${highlight?'#315fa8':'transparent'}"/>`;
- body+=svgText(x,y+5,note.fret,highlight?'on-note':'',16);
- if(labels!=='hidden'){body+=svgText(x,22,note.pick||((i%2)?'U':'D'),'pick-label',13);
-  body+=svgText(x,206,labels==='interval'?(note.interval||note.name||''):(note.name||''),'',12);}
+ const shown=notes.slice(0,35);
+ // Notes with the same finite beat index are attacked together: TAB vertically aligns them.
+ const columns=[],positions=[];
+ shown.forEach((note,i)=>{
+  const beat=Number.isInteger(note.beat)&&note.beat>=0?'beat:'+note.beat:'note:'+i;
+  let index=columns.indexOf(beat);
+  if(index===-1){index=columns.length;columns.push(beat);}
+  positions.push(index);
+ });
+ const n=columns.length,w=Math.max(640,100+n*53),h=226;
+ let body=`<rect width="${w}" height="${h}" rx="12" fill="transparent"/>`;
+ for(let string=0;string<6;string++){
+  const y=46+string*23;
+  body+=`<line x1="72" y1="${y}" x2="${w-15}" y2="${y}" stroke="var(--fret-line,#687785)" stroke-width="1" opacity=".63"/>${svgText(35,y+4,STRING_NAMES[string])}`;
+ }
+ const emitted=new Set();
+ shown.forEach((note,i)=>{
+  const col=positions[i],x=104+col*53,y=46+note.string*23,highlight=active===i;
+  body+=`<rect x="${x-20}" y="${y-15}" width="40" height="30" fill="var(--panel-bg,#171f2d)"/>`;
+  body+=`<rect x="${x-19}" y="${y-16}" width="38" height="32" rx="8" fill="${highlight?'#315fa8':'transparent'}"/>`;
+  body+=svgText(x,y+5,note.fret,highlight?'on-note':'',16);
+  if(labels!=='hidden'&&!emitted.has(col)){
+   body+=svgText(x,22,note.pick||((i%2)?'U':'D'),'pick-label',13);
+   body+=svgText(x,206,labels==='interval'?(note.interval||note.name||''):(note.name||''),'',12);
+   emitted.add(col);
+  }
  });
  if(labels!=='hidden'){body+=svgText(35,22,'PICK','',9);body+=svgText(35,206,labels==='interval'?'DEGREE':'NOTE','',9);}
- return svgWrap(body,w,h,'Guitar tablature with pick direction and note names');
+ return svgWrap(body,w,h,'Guitar tablature: notes in one column play together, with pick direction and note names');
 }
 export function renderFretboardSvg(notes=[],active=-1,labels='note'){
  const used=notes.filter(n=>Number.isFinite(n.fret)).map(n=>n.fret),mn=Math.min(...used,0),mx=Math.max(...used,8);

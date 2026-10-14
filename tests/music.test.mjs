@@ -107,3 +107,42 @@ test('invalid lengths and modes safely revert to legacy 45-minute technique plan
   assert.ok(SESSION_DURATIONS.includes(session.durationMinutes));
  }
 });
+
+test('circle-of-fourths/fifths intervals and named scale targets match all 12 tonal centers',()=>{
+ const drill=DRILL_BY_ID['circle-recall'];
+ assert.ok(drill&&drill.stages.length===3);
+ for(const key of KEYS){
+  const start=keyPc(key);
+  for(const [kind,distance] of [['circle-fourths',5],['circle-fifths',7]]){
+   const notes=buildExample(kind,key);
+   assert.equal(notes.length,5);
+   assert.deepEqual(notes.map(n=>n.pc),Array.from({length:5},(_,i)=>(start+i*distance)%12));
+   assert.ok(notes.every(n=>n.fret>=0&&n.fret<=22&&n.string>=0&&n.string<6));
+  }
+  for(const [kind,offset] of [['target-third',11],['target-seventh',5],['target-root',0]]){
+   const note=buildExample(kind,key)[0];
+   assert.equal(note.pc,(start+offset)%12);
+   assert.ok(note.fret<=22);
+  }
+ }
+});
+test('simultaneous double-stop and octave notes share one TAB beat column',()=>{
+ for(const kind of ['double-stop','octave']){
+  const notes=buildExample(kind,'C');
+  assert.equal(notes.length,2);
+  assert.equal(notes[0].beat,0);
+  assert.equal(notes[1].beat,0);
+  const tab=renderTabSvg(notes);
+  assert.match(tab,/notes in one column play together/);
+  // Both fret labels belong at the same x coordinate (104px).
+  assert.ok(tab.includes('x="104" y="'+(46+notes[0].string*23+5)+'"'));
+  assert.ok(tab.includes('x="104" y="'+(46+notes[1].string*23+5)+'"'));
+ }
+});
+test('ear and approach exercises now have explicit changing target stages',()=>{
+ for(const id of ['ear-guide','jazz-approach']){
+  const d=DRILL_BY_ID[id];
+  assert.ok(stageCount(d)>=3);
+  assert.ok(d.stages.every(st=>buildExample(st.exampleKind,'Bb').length>0));
+ }
+});
