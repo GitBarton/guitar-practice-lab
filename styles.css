@@ -133,3 +133,13 @@ body[data-theme="light"]{color-scheme:light;--bg:#f2f5f7;--side:#fff;--panel:#ff
 .mode-diatonic strong{font-size:15px}
 @media(max-width:950px){.mode-diatonic-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:490px){.mode-diatonic-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.mode-degree{min-width:48px}}
+/* Subtle guided-note emphasis for ear/target-tone drills, disabled for reduced motion. */
+@keyframes ear-target-glow{0%,100%{opacity:1;filter:drop-shadow(0 0 1px var(--teal))}50%{opacity:.65;filter:drop-shadow(0 0 8px var(--amber))}}
+@media(prefers-reduced-motion:no-preference){
+ .target-tone-display svg .on-note,
+ .target-tone-display svg circle[stroke="#fff"]{animation:ear-target-glow 1.6s ease-in-out infinite}
+}
+@media(prefers-reduced-motion:reduce){
+ .target-tone-display svg .on-note,
+ .target-tone-display svg circle[stroke="#fff"]{animation:none}
+}
