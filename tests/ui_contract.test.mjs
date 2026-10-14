@@ -140,3 +140,20 @@ test('Modes & Harmony uses five selectable CAGED four-fret regions rather than t
  assert.match(position,/CAGED_REGIONS/);
  assert.doesNotMatch(position,/audio|microphone|localStorage/i);
 });
+
+test('selected modal harmony replaces constant major-key chord inventory in Modes page',()=>{
+ const harmony=readFileSync(new URL('../modal-harmony.js',import.meta.url),'utf8');
+ const start=app.indexOf('function renderModesLab(){');
+ const end=app.indexOf('function renderHarmony(){',start);
+ const section=app.slice(start,end);
+ assert.ok(start>=0&&end>start);
+ assert.match(section,/harmonizeSelectedMode\(scale\)/);
+ assert.match(section,/modalHarmony\.title/);
+ assert.match(section,/modalHarmony\.chords/);
+ assert.match(section,/modalHarmony\.kind==='characteristic'/);
+ assert.doesNotMatch(section,/Diatonic 7th chords of \$\{modalKey\} major/);
+ assert.doesNotMatch(section,/const chords=diatonicSevenths\(modalKey\)/);
+ assert.match(harmony,/spellScaleDegrees/);
+ assert.match(css,/\.mode-diatonic-grid\.modal-characteristic/);
+ assert.match(sw,/'\.\/modal-harmony\.js'/);
+});
