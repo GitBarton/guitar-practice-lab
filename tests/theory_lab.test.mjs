@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {MODE_DEFINITIONS,MODE_FAMILIES,scaleFor,diatonicSevenths,scaleTabTargets} from '../theory-lab.js';
+import {MODE_DEFINITIONS,MODE_FAMILIES,MODE_DEGREES,scaleFor,diatonicSevenths,scaleTabTargets} from '../theory-lab.js';
 import {KEYS} from '../data.js';
 import {keyPc} from '../music.js';
 const prefix=(id,key)=>scaleFor(id,key).intervals;
@@ -47,4 +47,15 @@ test('reject unknown modes and keys, and retain immutable note formulas',()=>{
  assert.throws(()=>scaleFor('altered','H'));
  assert.throws(()=>diatonicSevenths('H'));
  assert.equal(Object.isFrozen(MODE_DEFINITIONS[0].intervals),true);
+});
+
+test('modal degree labels are specific and not guessed from sequential note indexes',()=>{
+ assert.deepEqual(MODE_DEGREES.altered,['1','♭9','♯9','3','♭5/♯11','♭13','♭7']);
+ assert.deepEqual(MODE_DEGREES['lydian-dominant'],['1','2','3','♯4','5','6','♭7']);
+ assert.deepEqual(MODE_DEGREES['diminished-hw'],['1','♭9','♯9','3','♯11','5','13','♭7']);
+ for(const def of MODE_DEFINITIONS){
+  const scale=scaleFor(def.id,'C');
+  assert.equal(scale.degrees.length,scale.intervals.length,def.id);
+  assert.deepEqual(scaleTabTargets(scale).slice(0,-1).map(n=>n.interval),scale.degrees);
+ }
 });
