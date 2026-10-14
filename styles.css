@@ -121,3 +121,7 @@ body[data-theme="light"]{color-scheme:light;--bg:#f2f5f7;--side:#fff;--panel:#ff
 /* Keyboard guidance is non-interactive; shortcuts only work while actively practicing. */
 .practice-shortcuts{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:0 0 11px;line-height:1.6}
 .practice-shortcuts kbd{display:inline-flex;align-items:center;justify-content:center;min-width:25px;padding:1px 6px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;background:var(--panel2);font:inherit;font-weight:700;color:var(--text)}
+
+/* Original Jazz Masters phrase studies, readable without external assets */
+#app .card:has([data-vocabulary]) h2{margin:19px 0 8px;font-size:20px}
+@media(max-width:650px){#app .card:has([data-vocabulary]) .form-row{flex-direction:column}}
