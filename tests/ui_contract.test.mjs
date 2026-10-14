@@ -110,6 +110,21 @@ test('practice UI shows keyboard hints and respects stages for Enter',()=>{
  assert.match(css,/\.practice-shortcuts/);
 });
 
+test('interactive modes route, key/mode selectors and active note navigation are wired',()=>{
+ assert.match(app,/case 'modes':html=renderModesLab\(\)/);
+ assert.match(app,/\['modes','Modes & Harmony'/);
+ assert.match(app,/function renderModesLab\(\)/);
+ assert.match(app,/data-theory="family"/);
+ assert.match(app,/data-theory="mode"/);
+ assert.match(app,/data-theory="key"/);
+ assert.match(app,/mode-step:/);
+ assert.match(app,/mode-next/);
+ assert.match(app,/mode-back/);
+ assert.match(app,/diatonicSevenths\(modalKey\)/);
+ assert.match(css,/\.mode-diatonic-grid/);
+ assert.match(sw,/'\.\/theory-lab\.js'/);
+});
+
 test('warm jazz studio theme retains visible controls in both light and dark modes',()=>{
  const icon=readFileSync(new URL('../icon.svg',import.meta.url),'utf8');
  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
