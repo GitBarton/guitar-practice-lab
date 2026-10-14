@@ -142,3 +142,15 @@ test('input records remain untouched and malformed records do not inflate time',
  assert.equal(stats.summary.weekDrills,2);
  assert.equal(JSON.stringify(records),original);
 });
+
+test('daily history and streaks continue correctly across December / January',()=>{
+ const now=new Date(2027,0,1,12);
+ const logged=new Date(2026,11,31,20);
+ const report=buildPracticeDashboard([
+  {kind:'drill',created_at:logged.toISOString(),payload:{drillId:'ear-guide',seconds:900,ratingPct:90}}
+ ],now,7);
+ assert.equal(report.days.at(-2).key,'2026-12-31');
+ assert.equal(report.days.at(-2).minutes,15);
+ assert.equal(report.today.key,'2027-01-01');
+ assert.equal(report.summary.streak,1);
+});
