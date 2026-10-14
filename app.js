@@ -1,6 +1,7 @@
 import {APP_VERSION,KEYS,CATEGORIES,SONGS,DRILLS,DRILL_BY_ID,REFERENCES,REFERENCE_BY_ID,RELEASE_NOTES,SESSION_DURATIONS,SESSION_MODES,stageCount,currentStage,clampedStageIndex,makeSession} from './data.js';
 import {buildExample,renderTabSvg,renderFretboardSvg,shellShapes,chordDiagramSvg,progressionFor,enclosureGuide,enclosureInstructions,escapeHtml as e,pitchName,keyPc,INTERVALS,buildNotePath} from './music.js';
 import {SongTrackPlayer,songClock} from './song-audio.js';
+import {MODE_FAMILIES,MODE_DEFINITIONS,scaleFor,diatonicSevenths,scaleTabTargets} from './theory-lab.js';
 import {OPEN_STRING_PITCHES,PITCH_CHOICES,pitchFrequency,registerTempoTap,ReferencePitchPlayer} from './reference-pitch.js';
 import {buildTwoFiveOne,clampHarmonyTempo} from './harmony.js';
 import {ChordBacking} from './backing-audio.js';
@@ -30,7 +31,7 @@ const ic=(name)=>`<span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"
 const btn=(action,label,cls='')=>`<button type="button" class="btn ${cls}" data-action="${action}">${label}</button>`;
 const tag=(s,special=false)=>`<span class="pill${special?' special':''}">${safe(s)}</span>`;
 const rect=(title,description,action)=>`<a class="list-row" href="${action}"><span class="row-main"><div class="row-title">${safe(title)}</div><div class="row-desc">${safe(description)}</div></span>${ic('chevron')}</a>`;
-const nav=[['today','Today','home'],['practice','Practice','play'],['songs','Songs','music'],['harmony','ii–V–I Zone','music'],['drills','Drills','library'],['references','References','book'],['progress','Progress','chart']];
+const nav=[['today','Today','home'],['modes','Modes & Harmony','music'],['practice','Practice','play'],['songs','Songs','music'],['harmony','ii–V–I Zone','music'],['drills','Drills','library'],['references','References','book'],['progress','Progress','chart']];
 let currentHash='';
 function route(){const parts=decodeURIComponent(location.hash.replace(/^#/,'')||'today').split('/');return {page:parts[0],id:parts.slice(1).join('/')};}
 function setRoute(r){if(location.hash==='#'+r){render();return;}location.hash=r;}
@@ -46,7 +47,7 @@ function shell(content){const r=route(),active=['today','practice','songs','harm
  return `<div class="shell"><aside class="sidebar"><a href="#today" class="brand route-link"><span class="brand-mark"><img class="brand-guitar" src="./icon.svg" alt="" width="48" height="48" /></span><div><div class="brand-title">Guitar Practice Lab</div><div class="brand-small">Music · Precision · Flow</div></div></a><nav class="nav" aria-label="Main navigation">${navHTML}</nav><div class="side-bottom"><div class="small"><span class="sync-pip ${cloud.user?'good':''}"></span>Practice data</div><p id="sidebar-status">${safe(cloudMessage)}</p><a href="#settings">${ic('settings')} &nbsp; Settings & cloud</a></div></aside><div class="main-wrap"><div class="topbar"><div><span class="eyebrow">Practice Workspace</span></div><div class="top-right">${state.active?tag('Session in progress',true):''}<a href="#releases" class="pill release-link" title="View release notes">v${APP_VERSION} · What's new</a><a class="btn small ghost" href="#settings">${ic('settings')}<span class="desktop-only">Settings</span></a></div></div><main class="page" id="main-content">${content}</main></div></div>`;
 }
 function render(){document.body.dataset.theme=state.settings.theme;const r=route();if(r.page!=='today')referencePitch.stop();let html='';
- switch(r.page){case 'today':html=renderToday();break;case 'practice':html=renderPractice();break;case 'drills':html=renderDrills();break;case 'drill':html=renderDrillDetail(r.id);break;case 'songs':html=renderSongs();break;case 'harmony':html=renderHarmony();break;case 'song':html=renderSongDetail(r.id);break;case 'references':html=renderReferences();break;case 'reference':html=renderReferenceDetail(r.id);break;case 'progress':html=renderProgress();break;case 'releases':html=renderReleases();break;case 'settings':html=renderSettings();break;default:html=renderToday();}
+ switch(r.page){case 'today':html=renderToday();break;case 'practice':html=renderPractice();break;case 'drills':html=renderDrills();break;case 'drill':html=renderDrillDetail(r.id);break;case 'songs':html=renderSongs();break;case 'harmony':html=renderHarmony();break;case 'modes':html=renderModesLab();break;case 'song':html=renderSongDetail(r.id);break;case 'references':html=renderReferences();break;case 'reference':html=renderReferenceDetail(r.id);break;case 'progress':html=renderProgress();break;case 'releases':html=renderReleases();break;case 'settings':html=renderSettings();break;default:html=renderToday();}
  $('app').innerHTML=shell(html);updateClock();updateSongTrackUI();if(r.page==='drills')filterDrills();}
 function queueOverview(s){return `<div class="list">${s.entries.map((entry,i)=>{const d=DRILL_BY_ID[entry.id];return `<div class="step-row ${entry.done?'done':''}"><div class="step-n">${entry.done?'✓':i+1}</div><div class="step-info"><div class="step-name">${safe(d?.title||'Song practice')}</div><div class="step-min">${safe(d?.category?categoryTitle(d.category):'Repertoire')} · ${entry.minutes} min</div></div><span class="small muted">${entry.minutes}:00</span></div>`;}).join('')}</div>`;}
 function renderHomeMusicTools(){
@@ -166,6 +167,36 @@ function renderDrillDetail(id){const d=DRILL_BY_ID[id];if(!d)return `${pageHeade
  const key=todayKey(),instructions=d.kind==='enclosure'?enclosureInstructions(key):d.instructions,notes=buildExample(currentStage(d)?.exampleKind||d.kind,key,d.quality||'maj7',d.octaves||2,state.settings.position),rec=(d.reference||[]).map(ref=>REFERENCE_BY_ID[ref]).filter(Boolean),isChord=d.kind==='chords';
  return `${pageHeader(categoryTitle(d.category),d.title,d.summary,btn(`start-free:${d.id}`,`${ic('play')} practice this drill`,'primary'))}
  <div class="grid-main"><div class="card"><div class="card-header"><h2>Exercise diagram</h2>${tag(key,true)}</div>${isChord?chordBlocks(key):!notes.length?`<div class="alert">A full three-octave path is not available in this key on a 22-fret standard-tuned guitar. Try another key or a two-octave arpeggio.</div>`:`<div class="eyebrow">Tab · D = down, U = up</div><div class="diagram-viewport" style="margin-top:10px">${renderTabSvg(notes)}</div><div class="eyebrow" style="margin-top:20px">Fretboard</div><div class="diagram-viewport" style="margin-top:10px">${renderFretboardSvg(notes,-1,'note')}</div>`}${d.octaves===3?`<p class="alert">Three-octave lines can reach very high frets in some keys. Reduce the range or change key if your guitar or neck comfort makes this impractical.</p>`:''}<div class="divider"></div><h3>How to practice</h3><ol class="instruction-list">${instructions.map(i=>`<li>${safe(i)}</li>`).join('')}</ol>${stageCount(d)?`<h3>Guided stages</h3><ol class="instruction-list">${d.stages.map(stage=>`<li><strong>${safe(stage.title)}:</strong> ${safe(stage.focus)}</li>`).join('')}</ol>`:''} </div><aside class="card"><h3>References</h3>${rec.map(r=>rect(r.title,r.takeaway,'#reference/'+r.id)).join('')||'<p>No specific reference linked.</p>'}<div class="divider"></div><div class="buttons">${btn(`start-free:${d.id}`,'Start solo practice','primary full')}<a class="btn full ghost" href="#drills">Back to library</a></div></aside></div>`;
+}
+let modalFamily='melodic',modalKey='C',modalId='altered',modalStep=-1;
+function renderModesLab(){
+ const scale=scaleFor(modalId,modalKey),notes=scaleTabTargets(scale);
+ const choices=MODE_DEFINITIONS.filter(d=>d.family===modalFamily);
+ const active=choices.some(d=>d.id===modalId)?modalId:choices[0].id;
+ if(active!==modalId){modalId=active;return renderModesLab();}
+ const degree=modalStep>=0?Math.min(notes.length-1,modalStep):-1;
+ const chords=diatonicSevenths(modalKey);
+ return `${pageHeader('Music theory','Modes & diatonic harmony','An interactive pitch-checked library: hear the interval, visualize the note and practice a target in every key.')}
+ <div class="card">
+ <div class="form-row">
+  <div class="form-group"><label>Scale family</label><select data-theory="family">${MODE_FAMILIES.map(f=>`<option value="${f.id}" ${f.id===modalFamily?'selected':''}>${safe(f.title)}</option>`).join('')}</select></div>
+  <div class="form-group"><label>Scale or mode</label><select data-theory="mode">${choices.map(m=>`<option value="${m.id}" ${m.id===active?'selected':''}>${safe(m.title)}</option>`).join('')}</select></div>
+  <div class="form-group"><label>Root key</label><select data-theory="key">${KEYS.map(key=>`<option value="${key}" ${key===modalKey?'selected':''}>${key}</option>`).join('')}</select></div>
+ </div>
+ <h2 class="modes-heading">${safe(scale.title)} <span class="pill">${safe(modalKey)} ${safe(scale.chord)}</span></h2>
+ <p class="muted">${safe(scale.use)}</p>
+ <div class="mode-degree-row">${scale.intervals.map((semitones,i)=>`<button type="button" class="mode-degree ${degree===i?'active':''}" data-action="mode-step:${i}" aria-pressed="${degree===i}">${safe(scale.degrees[i])}<small>${semitones} semitones</small></button>`).join('')}</div>
+ <div class="buttons" style="margin:14px 0">${btn('mode-back','← Previous tone','small')}${btn('mode-next','Next tone →','small primary')}${btn('mode-reset','Show all','small ghost')}</div>
+ <p role="status" class="micro muted">${degree>=0?'Focused degree '+(degree+1)+' of '+scale.intervals.length+' · '+scale.intervals[degree]+' semitones above '+modalKey:'Select a degree to highlight the guitar position.'} The diagram shows note targets, not a prescribed fingering.</p>
+ <div class="diagram-viewport">${renderTabSvg(notes,degree,state.settings.labels)}</div>
+ <div class="diagram-viewport" style="margin-top:13px">${renderFretboardSvg(notes,degree,state.settings.labels)}</div>
+ </div>
+ <section class="card" style="margin-top:18px">
+ <h2>Diatonic 7th chords of ${modalKey} major</h2>
+ <p class="muted">Stack alternate scale degrees in thirds. These labels follow the major-key signature; they are not diminished-scale chord qualities.</p>
+ <div class="mode-diatonic-grid">${chords.map(ch=>`<div class="mode-diatonic"><span class="eyebrow">${safe(ch.role)}</span><strong>${safe(ch.symbol)}</strong><span class="micro muted">${safe(ch.quality)}</span></div>`).join('')}</div>
+ <p class="footnote">Reference: Berklee Online’s Jazz Scales and Voice Leading for Guitar. The app transposes verified pitch classes; exact physical fingering patterns require a separate reference-audited route library.</p>
+ </section>`;
 }
 function renderHarmony(){
  const plan=buildTwoFiveOne(harmonySettings.key,harmonySettings.mode);
@@ -384,6 +415,9 @@ function movePracticeStage(delta){
  saveState(state);render();
 }
 const actions={
+ 'mode-back':()=>{modalStep=Math.max(-1,modalStep-1);render();},
+ 'mode-next':()=>{const n=scaleFor(modalId,modalKey).intervals.length;modalStep=(modalStep+1)%n;render();},
+ 'mode-reset':()=>{modalStep=-1;render();},
  'home-pitch-play':async()=>{
    try{metronome.stop();stopHarmonyPlayback();songTrackPlayer.pause();await referencePitch.toggle(selectedHomePitch);}
    catch(error){showToast('Reference tone unavailable: '+error.message);}
@@ -448,7 +482,7 @@ function handlePracticeShortcut(ev){
  return false;
 }
 document.addEventListener('keydown',handlePracticeShortcut);
-document.addEventListener('click',async ev=>{const btn=ev.target.closest('[data-action]');if(!btn)return;ev.preventDefault();const name=btn.dataset.action;if(name?.startsWith('home-pitch:')){
+document.addEventListener('click',async ev=>{const btn=ev.target.closest('[data-action]');if(!btn)return;ev.preventDefault();const name=btn.dataset.action;if(name?.startsWith('mode-step:')){const i=Number(name.slice(10));if(Number.isInteger(i)&&i>=0&&i<scaleFor(modalId,modalKey).intervals.length){modalStep=i;render();}return;}if(name?.startsWith('home-pitch:')){
  const midi=Number(name.slice(11));
  if(PITCH_CHOICES.some(p=>p.midi===midi)){
   selectedHomePitch=midi;referencePitch.stop();
@@ -460,6 +494,15 @@ document.addEventListener('click',async ev=>{const btn=ev.target.closest('[data-
 }
  if(name?.startsWith('drill-filter:'))return setDrillCategory(name.slice(13));if(name?.startsWith('start-free:'))return startSession(true,name.slice(11));if(name?.startsWith('song-focus:'))return startSession(true,null,name.slice(11));if(name?.startsWith('save-song:'))return saveSong(name.slice(10));if(name?.startsWith('rating-set:'))return setRatingPercent(Number(name.slice(11)));const handler=actions[name];if(handler){try{await handler();}catch(error){console.error(error);showToast('Action failed: '+error.message);}}});
 document.addEventListener('change',async ev=>{const el=ev.target;
+ if(el.dataset.theory){
+  const prop=el.dataset.theory;
+  if(prop==='family'&&MODE_FAMILIES.some(f=>f.id===el.value)){
+   modalFamily=el.value;modalId=MODE_DEFINITIONS.find(m=>m.family===modalFamily).id;
+  }else if(prop==='mode'&&MODE_DEFINITIONS.some(m=>m.id===el.value&&m.family===modalFamily)){modalId=el.value;}
+  else if(prop==='key'&&KEYS.includes(el.value)){modalKey=el.value;}
+  modalStep=-1;render();return;
+ }
+
  if(el.id==='home-chromatic-note'){
   const midi=Number(el.value);
   if(PITCH_CHOICES.some(p=>p.midi===midi)){selectedHomePitch=midi;referencePitch.stop();render();}
