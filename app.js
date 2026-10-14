@@ -122,7 +122,7 @@ function renderHomeDashboard(){
  </div>
  <p class="footnote home-dashboard-note">Daily totals use recorded drill timers, not planned session lengths. Historic session totals are used only where no timed drills exist, avoiding double-counting. Dates use your local calendar; quality percentages are your own assessments. <a href="#progress">Detailed history and exports →</a></p>`;
 }
-function renderToday(){const complete=countSessions(),recent=lastSeven(),sessions=recent.filter(r=>r.kind==='session'),minutes=sessions.reduce((x,s)=>x+(Number(s.payload?.durationMinutes)||0),0),pctScores=recent.filter(r=>r.kind==='drill').map(r=>validRatingPercent(r.payload)).filter(n=>n!==null),avgQuality=pctScores.length?Math.round(pctScores.reduce((a,b)=>a+b,0)/pctScores.length):null;
+function renderToday(){const complete=countSessions();
  const mode=state.settings.selectedMode,duration=SESSION_DURATIONS.includes(Number(state.settings.selectedDuration))?Number(state.settings.selectedDuration):45,preview=makeSession(complete,mode,state.settings.selectedSong,duration);if(state.settings.selectedKey!=='auto')preview.key=state.settings.selectedKey;
  const modeLabel=SESSION_MODES.find(([id])=>id===mode)?.[1]||'Technique';
  const planDuration=state.active?state.active.entries.reduce((sum,e)=>sum+e.minutes,0):preview.durationMinutes;
