@@ -149,7 +149,7 @@ function renderModesLab(){
  </div>
  <h2 class="modes-heading">${safe(scale.title)} <span class="pill">${safe(modalKey)} ${safe(scale.chord)}</span></h2>
  <p class="muted">${safe(scale.use)}</p>
- <div class="mode-degree-row">${scale.intervals.map((semitones,i)=>`<button type="button" class="mode-degree ${degree===i?'active':''}" data-action="mode-step:${i}" aria-pressed="${degree===i}">${i+1}<small>${semitones} semitones</small></button>`).join('')}</div>
+ <div class="mode-degree-row">${scale.intervals.map((semitones,i)=>`<button type="button" class="mode-degree ${degree===i?'active':''}" data-action="mode-step:${i}" aria-pressed="${degree===i}">${safe(scale.degrees[i])}<small>${semitones} semitones</small></button>`).join('')}</div>
  <div class="buttons" style="margin:14px 0">${btn('mode-back','← Previous tone','small')}${btn('mode-next','Next tone →','small primary')}${btn('mode-reset','Show all','small ghost')}</div>
  <p role="status" class="micro muted">${degree>=0?'Focused degree '+(degree+1)+' of '+scale.intervals.length+' · '+scale.intervals[degree]+' semitones above '+modalKey:'Select a degree to highlight the guitar position.'} The diagram shows note targets, not a prescribed fingering.</p>
  <div class="diagram-viewport">${renderTabSvg(notes,degree,state.settings.labels)}</div>
