@@ -78,3 +78,34 @@ test('new pill design preserves all existing drill categories and search wiring'
  assert.match(app,/data-search=/);
  assert.match(app,/data-category=/);
 });
+
+test('practice keyboard shortcuts are scoped and do not hijack form editing or native controls',()=>{
+ const shortcut=app.split('function handlePracticeShortcut(ev){')[1].split("document.addEventListener('keydown',handlePracticeShortcut);")[0];
+ assert.ok(shortcut,'shortcut handler exists');
+ assert.match(shortcut,/route\(\)\.page!=='practice'/);
+ assert.match(shortcut,/!state\.active/);
+ assert.match(shortcut,/!currentDrill\(\)/);
+ assert.match(shortcut,/showRating/);
+ assert.match(shortcut,/ev\.defaultPrevented/);
+ for(const key of ['altKey','ctrlKey','metaKey','shiftKey','isComposing'])assert.ok(shortcut.includes(key),key+' must be guarded');
+ assert.match(shortcut,/input,textarea,select,button,a,\[contenteditable\]/);
+ assert.match(shortcut,/\[role="textbox"\]/);
+ assert.match(shortcut,/\[role="slider"\]/);
+ assert.match(shortcut,/ev\.key===' '/);
+ assert.match(shortcut,/ev\.code==='Space'/);
+ assert.match(shortcut,/ev\.key==='ArrowUp'/);
+ assert.match(shortcut,/ev\.key==='ArrowDown'/);
+ assert.match(shortcut,/ev\.key==='Enter'/);
+ assert.match(shortcut,/toggleTimer\(\)/);
+ assert.match(shortcut,/changeTempo\(ev\.key==='ArrowUp'\?5:-5\)/);
+ assert.match(shortcut,/stageCount\(drill\)<1/);
+ assert.match(shortcut,/movePracticeStage\(1\)/);
+ assert.doesNotMatch(shortcut,/metronome\.stop\(\)/);
+});
+test('practice UI shows keyboard hints and respects stages for Enter',()=>{
+ assert.match(app,/practice-shortcuts/);
+ assert.match(app,/<kbd>Space<\/kbd>/);
+ assert.match(app,/<kbd>↑<\/kbd>\/\<kbd>↓<\/kbd>/);
+ assert.match(app,/<kbd>Enter<\/kbd> Next stage/);
+ assert.match(css,/\.practice-shortcuts/);
+});
