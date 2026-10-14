@@ -622,8 +622,8 @@ document.addEventListener('click',async ev=>{const btn=ev.target.closest('[data-
  if(name?.startsWith('dom-root:')){
   const root=name.slice(9);if(root==='E'||root==='A'){dominantRootString=root;diagramStep=-1;render();}return;
  }
- if(name?.startsWith('modal-position:')){
-  const wanted=name.slice(15);
+ if(name?.startsWith('mode-position:')){
+  const wanted=name.slice(14);
   if(CAGED_REGIONS.some(s=>s.id===wanted)){modalPosition=wanted;render();}
   return;
  }
