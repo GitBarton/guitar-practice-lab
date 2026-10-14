@@ -1,11 +1,13 @@
 import {APP_VERSION,KEYS,CATEGORIES,SONGS,DRILLS,DRILL_BY_ID,REFERENCES,REFERENCE_BY_ID,RELEASE_NOTES,SESSION_DURATIONS,SESSION_MODES,stageCount,currentStage,clampedStageIndex,makeSession} from './data.js';
 import {buildExample,renderTabSvg,renderFretboardSvg,shellShapes,chordDiagramSvg,progressionFor,enclosureGuide,enclosureInstructions,escapeHtml as e,pitchName,keyPc,INTERVALS,buildNotePath} from './music.js';
 import {SongTrackPlayer,songClock} from './song-audio.js';
+import {completeSongLibrary,manualSongs,newCustomSong,SONG_METERS,CUSTOM_SONG_KIND} from './manual-songs.js';
 import {MODE_FAMILIES,MODE_DEFINITIONS,scaleFor,diatonicSevenths,scaleTabTargets} from './theory-lab.js';
 import {buildTwoFiveOne,clampHarmonyTempo} from './harmony.js';
 import {ChordBacking} from './backing-audio.js';
 import {loadState,saveState,addRecord,uid,weeklyReport,downloadText,exportCsv,importedSnapshot,validRatingPercent,isHighQualityDrill,ratingDisplay,CloudSync} from './storage.js';
 const state=loadState();
+const allSongs=()=>completeSongLibrary(state.records);
 // Public URL/key defaults survive browser-site-data deletion. The private auth session does not.
 const publishedCloud=window.GPL_CONFIG||{};
 if((!state.cloud?.url||!state.cloud?.key)&&(publishedCloud.supabaseUrl||publishedCloud.supabaseKey)){
@@ -55,7 +57,7 @@ function renderToday(){const complete=countSessions(),recent=lastSeven(),session
  return `${pageHeader('Home','Ready to practice?','A consistent system for technique, jazz language and live repertoire.')}
  <div class="metrics"><div class="metric"><div class="label">Sessions · last 7 days</div><div class="number">${sessions.length}</div></div><div class="metric"><div class="label">Minutes · last 7 days</div><div class="number">${minutes}</div></div><div class="metric"><div class="label">Average quality · last 7 days</div><div class="number">${avgQuality===null?'—':avgQuality+'%'}</div><div class="micro muted">${pctScores.length} percentage rating(s)</div></div></div>
  <div class="grid-main"><div>${top}<div style="height:20px"></div><div class="card"><div class="card-header"><h2>Today's ${planDuration}-minute plan</h2>${tag('Key '+preview.key,true)}</div>${queueOverview(state.active||preview)}</div></div>
- <aside class="card"><div class="card-header"><h3>Session setup</h3>${ic('target')}</div><div class="form-group"><label for="mode">Practice mode</label><select id="mode" data-setting="selectedMode" ${state.active?'disabled':''}>${SESSION_MODES.map(([id,label])=>`<option value="${id}" ${mode===id?'selected':''}>${safe(label)}</option>`).join('')}</select></div><div class="form-group" style="margin-top:13px"><label for="duration">Session length</label><select id="duration" data-setting="selectedDuration" ${state.active?'disabled':''}>${SESSION_DURATIONS.map(n=>`<option value="${n}" ${duration===n?'selected':''}>${n} minutes${n===45?' · original':''}</option>`).join('')}</select></div><div class="form-group" style="margin-top:13px"><label for="key">Primary key</label><select id="key" data-setting="selectedKey" ${state.active?'disabled':''}><option value="auto" ${state.settings.selectedKey==='auto'?'selected':''}>Auto · circle of fourths</option>${KEYS.map(k=>`<option value="${k}" ${state.settings.selectedKey===k?'selected':''}>${k}</option>`).join('')}</select></div><div class="form-group" style="margin-top:13px"><label for="song">Repertoire focus</label><select id="song" data-setting="selectedSong" ${state.active?'disabled':''}>${SONGS.map(s=>`<option value="${s.id}" ${state.settings.selectedSong===s.id?'selected':''}>${safe(s.title)}</option>`).join('')}</select></div><div class="divider"></div><div class="eyebrow">Key rotation</div><div class="key-grid" style="margin-top:12px">${KEYS.map((k,i)=>`<div class="key-tile ${preview.key===k?'current':''}">${k.replace('b','♭')}</div>`).join('')}</div><p class="footnote">One primary key per practice day. A full rotation takes 12 sessions; override the key when needed.</p></aside></div>`;
+ <aside class="card"><div class="card-header"><h3>Session setup</h3>${ic('target')}</div><div class="form-group"><label for="mode">Practice mode</label><select id="mode" data-setting="selectedMode" ${state.active?'disabled':''}>${SESSION_MODES.map(([id,label])=>`<option value="${id}" ${mode===id?'selected':''}>${safe(label)}</option>`).join('')}</select></div><div class="form-group" style="margin-top:13px"><label for="duration">Session length</label><select id="duration" data-setting="selectedDuration" ${state.active?'disabled':''}>${SESSION_DURATIONS.map(n=>`<option value="${n}" ${duration===n?'selected':''}>${n} minutes${n===45?' · original':''}</option>`).join('')}</select></div><div class="form-group" style="margin-top:13px"><label for="key">Primary key</label><select id="key" data-setting="selectedKey" ${state.active?'disabled':''}><option value="auto" ${state.settings.selectedKey==='auto'?'selected':''}>Auto · circle of fourths</option>${KEYS.map(k=>`<option value="${k}" ${state.settings.selectedKey===k?'selected':''}>${k}</option>`).join('')}</select></div><div class="form-group" style="margin-top:13px"><label for="song">Repertoire focus</label><select id="song" data-setting="selectedSong" ${state.active?'disabled':''}>${allSongs().map(s=>`<option value="${s.id}" ${state.settings.selectedSong===s.id?'selected':''}>${safe(s.title)}</option>`).join('')}</select></div><div class="divider"></div><div class="eyebrow">Key rotation</div><div class="key-grid" style="margin-top:12px">${KEYS.map((k,i)=>`<div class="key-tile ${preview.key===k?'current':''}">${k.replace('b','♭')}</div>`).join('')}</div><p class="footnote">One primary key per practice day. A full rotation takes 12 sessions; override the key when needed.</p></aside></div>`;
 }
 function progressSvg(notes,pulse=false){const focus=pulse&&diagramStep<0?0:diagramStep;return `<div class="diagram-viewport ${pulse?'target-tone-display':''}" id="diagram-container">${state.settings.diagram==='fretboard'?renderFretboardSvg(notes,focus,state.settings.labels):renderTabSvg(notes,focus,state.settings.labels)}</div>`;}
 function chordBlocks(key){return `<div class="grid-2">${shellShapes(key).map(c=>`<div style="background:var(--panel2);padding:12px;border-radius:12px;min-width:0"><div class="small muted">${c.label}</div><h3>${safe(c.name)}</h3><div class="diagram-viewport" style="padding:0;min-height:0;border:0">${chordDiagramSvg(c)}</div></div>`).join('')}</div><p class="footnote">These are transposable shell-voicing examples. Some keys use higher positions; choose a comfortable octave and mute each X string.</p>`;}
@@ -75,7 +77,7 @@ function updateClock(){const a=state.active,clock=$('practice-clock'),bar=$('tim
 function currentDrill(){const a=state.active;return a?.entries?.[a.position]||null;}
 function renderPractice(){if(!state.active)return `${pageHeader('Practice','Active workspace','Start a session to display your musical drills and timer.')}
  <div class="card empty">No active session. Build your practice plan on Today, or open a single drill from the library.<div class="buttons" style="justify-content:center;margin-top:16px"><a href="#today" class="btn primary">Choose a session</a><a href="#drills" class="btn">Browse drills</a></div></div>`;
- const a=state.active,entry=currentDrill();if(!entry)return renderEndSession();const d=DRILL_BY_ID[entry.id],isSong=entry.id==='song',song=SONGS.find(s=>s.id===a.songId)||SONGS[0];const time=Math.max(0,Math.ceil(entry.minutes*60-clockMs()/1000));const stageIndex=d?clampedStageIndex(d,entry.stageIndex):0,stage=d?currentStage(d,stageIndex):null;const isChords=d?.kind==='chords',isMusical=['ii-v-i','enclosure','approach'].includes(d?.kind);
+ const a=state.active,entry=currentDrill();if(!entry)return renderEndSession();const d=DRILL_BY_ID[entry.id],isSong=entry.id==='song',song=allSongs().find(s=>s.id===a.songId)||SONGS[0];const time=Math.max(0,Math.ceil(entry.minutes*60-clockMs()/1000));const stageIndex=d?clampedStageIndex(d,entry.stageIndex):0,stage=d?currentStage(d,stageIndex):null;const isChords=d?.kind==='chords',isMusical=['ii-v-i','enclosure','approach'].includes(d?.kind);
  const notes=d?buildExample(stage?.exampleKind||d.kind,a.key,d.quality||'maj7',d.octaves||2,state.settings.position):[];
  const diagram=!isSong&&!isChords&&!notes.length?`<div class="alert">This exact range does not fit a 22-fret standard-tuned guitar in ${safe(a.key)}. Choose a different key or use a two-octave drill.</div>`:isSong?`<div class="callout"><strong>${safe(song.title)}</strong><p>${safe(song.focus)}</p><p>${safe(song.notes)}</p></div>${renderSongTrackPanel(song.id)}`:isChords?chordBlocks(a.key):`${progressSvg(notes,d?.id==='ear-guide'||d?.id==='jazz-approach')}<div class="color-legend" style="margin-top:10px"><span><span class="dot root"></span>Root/first note</span><span><span class="dot"></span>Chord tone</span><span><span class="dot active"></span>Selected note</span></div>`;
  const previewTime=`<div class="control-panel"><div style="flex:1;min-width:120px"><div class="eyebrow">Tempo</div><div class="tempo"><span id="current-bpm">${state.settings.defaultBpm}</span><span class="muted" style="font-size:14px"> BPM</span></div></div><div style="text-align:right"><div class="eyebrow">Remaining</div><div class="timer" id="practice-clock">${formatSeconds(time)}</div></div></div><div class="meter" style="margin:13px 0 18px"><div id="time-bar" style="width:${Math.min(100,clockMs()/(entry.minutes*600)*100)}%"></div></div>
@@ -108,7 +110,7 @@ function renderPractice(){if(!state.active)return `${pageHeader('Practice','Acti
  <aside class="practice-side">
  <div class="card practice-timing"><div class="card-header"><h2>Time & metronome</h2>${tag('Exercise '+(a.position+1)+' / '+a.entries.length)}</div>${previewTime}</div>
  <details class="card practice-route"><summary>Session route · ${a.entries.length} exercises</summary>
- ${a.entries.map((x,i)=>`<div class="step-row ${a.position===i?'selected':''} ${x.done?'done':''}" style="padding:9px 4px"><div class="step-n">${x.done?'✓':i+1}</div><div class="step-info"><div class="step-name">${safe(DRILL_BY_ID[x.id]?.title||(SONGS.find(s=>s.id===a.songId)?.title||'Song'))}</div><div class="step-min">${x.minutes} min</div></div></div>`).join('')}
+ ${a.entries.map((x,i)=>`<div class="step-row ${a.position===i?'selected':''} ${x.done?'done':''}" style="padding:9px 4px"><div class="step-n">${x.done?'✓':i+1}</div><div class="step-info"><div class="step-name">${safe(DRILL_BY_ID[x.id]?.title||(allSongs().find(s=>s.id===a.songId)?.title||'Song'))}</div><div class="step-min">${x.minutes} min</div></div></div>`).join('')}
  </details></aside></div>`;
 }
 function renderEndSession(){const a=state.active;const entries=a.entries;const done=entries.filter(x=>x.done).length;return `${pageHeader('Session recap','Session complete','Review what you practiced and add one practical observation.')}
@@ -236,8 +238,31 @@ function logHarmonyAttempt(){
  const entry=$('harmony-notes');if(entry)entry.value='';
  showToast('ii–V–I practice saved. Progress is available under Progress.');
 }
-function renderSongs(){const logged=state.records.filter(r=>r.kind==='song');return `${pageHeader('Performance repertoire','Songs & setlists','Your Logos-Motive setlist, with rehearsal priorities and performance notes.',tag(SONGS.length+' songs'))}
- <div class="grid-main"><div class="list">${SONGS.map((s,i)=>{const last=latestSong(s.id);return `<a class="song-item" href="#song/${s.id}"><div class="song-n">${String(i+1).padStart(2,'0')}</div><div class="song-copy"><div class="song-title">${safe(s.title)}</div><p>${safe(s.focus)}</p></div><span class="badge">${last?safe(last.readiness||'Tracking'):'Not tracked'}</span>${ic('chevron')}</a>`;}).join('')}</div><aside class="card"><div class="eyebrow">Repertoire tracking</div><h2 style="margin-top:12px">From drill to performance</h2><p>Give each song a working key, tempo and readiness status. Keep a short note about the next musical problem to solve.</p><div class="divider"></div><div class="metric"><div class="label">Songs with rehearsal logs</div><div class="number">${new Set(logged.map(r=>r.payload?.songId)).size} / ${SONGS.length}</div></div><p class="footnote">Arrangements can use different keys, tempos and song structures. The app does not assume a recording's key is yours.</p></aside></div>`;}
+function renderSongs(){
+ const library=allSongs(),custom=manualSongs(state.records),logged=state.records.filter(r=>r.kind==='song');
+ return `${pageHeader('Performance repertoire','Songs & setlists','Built-in setlist plus the songs you add yourself. Rehearsal profiles and optional backing tracks work for both.',tag(library.length+' songs'))}
+ <div class="card manual-song-creator">
+ <div class="card-header"><div><div class="eyebrow">Your repertoire</div><h2>Add a song manually</h2></div>${tag(custom.length+' personally added')}</div>
+ <p class="small muted">Create your own song profile, then rehearse it using the same Practice with Track player, connected drills and progress notes. Audio files remain on your device.</p>
+ <div class="form-row">
+   <div class="form-group"><label for="new-song-title">Song title *</label><input id="new-song-title" class="field" maxlength="120" placeholder="e.g. Blue Bossa" required /></div>
+   <div class="form-group"><label for="new-song-meter">Time signature</label><select id="new-song-meter">${SONG_METERS.map(m=>`<option value="${m}">${m}</option>`).join('')}</select></div>
+   <div class="form-group"><label for="new-song-key">Arrangement key (optional)</label><input id="new-song-key" class="field" maxlength="24" placeholder="e.g. Cm or Eb" /></div>
+   <div class="form-group"><label for="new-song-bpm">Target tempo (optional)</label><input id="new-song-bpm" class="field" inputmode="numeric" type="number" min="30" max="260" placeholder="e.g. 120" /></div>
+ </div>
+ <div class="form-row" style="margin-top:12px">
+  <div class="form-group"><label for="new-song-focus">Technique / rehearsal goal</label><input id="new-song-focus" class="field" maxlength="220" placeholder="e.g. clean shell voicings and relaxed swing" /></div>
+  <div class="form-group"><label for="new-song-drill">Related drill</label><select id="new-song-drill">${DRILLS.map(d=>`<option value="${safe(d.id)}" ${d.id==='jazz-guide'?'selected':''}>${safe(d.title)}</option>`).join('')}</select></div>
+ </div>
+ <div class="form-group" style="margin-top:12px"><label for="new-song-notes">Arrangement or practice notes</label><textarea id="new-song-notes" class="field" rows="3" maxlength="1000" placeholder="Form, chord changes, backing-track notes, sections to practice…"></textarea></div>
+ <div class="buttons" style="margin-top:13px">${btn('add-manual-song','+ Add song to repertoire','primary')}</div>
+ <p class="footnote">Song metadata is kept in your existing practice records, JSON backup and optional private sync. No audio file is stored or uploaded. You can keep up to 250 custom songs.</p>
+ </div>
+ <div class="grid-main" style="margin-top:17px"><div class="list">${library.map((song,index)=>{const last=latestSong(song.id);
+ return `<a class="song-item" href="#song/${song.id}"><div class="song-n">${String(index+1).padStart(2,'0')}</div><div class="song-copy"><div class="song-title">${safe(song.title)} ${song.manual?'<span class="badge">Personal</span>':''}</div><p>${safe(song.focus)}</p></div><span class="badge">${last?safe(last.readiness||'Tracking'):'Not tracked'}</span>${ic('chevron')}</a>`;}).join('')}</div>
+ <aside class="card"><div class="eyebrow">Repertoire tracking</div><h2 style="margin-top:12px">From drill to performance</h2><p>Save keys, tempo, readiness and next rehearsal priorities for any song—including your own entries.</p><div class="divider"></div><div class="metric"><div class="label">Songs with rehearsal logs</div><div class="number">${new Set(logged.map(r=>r.payload?.songId)).size} / ${library.length}</div></div><p class="footnote">Your own song list is stored in practice records; locally chosen MP3/WAV files are never included in backups or cloud sync.</p></aside>
+ </div>`;
+}
 function renderSongTrackPanel(songId){
  const p=songTrackPlayer.snapshot(),loaded=p.loaded&&p.songId===songId;
  return '<section class="card song-track-panel" aria-label="Practice with your own recording">'+
@@ -269,8 +294,8 @@ function updateSongTrackUI(){
  const error=$('track-error');
  if(error){error.hidden=!p.error;error.textContent=p.error;}
 }
-function renderSongDetail(id){const song=SONGS.find(s=>s.id===id);if(!song)return `${pageHeader('Repertoire','Song not found','Choose a song from the list.')}`;const prev=latestSong(id)||{};const trackPanel=renderSongTrackPanel(id);
- const related=DRILL_BY_ID[song.suggested];const entries=state.records.filter(r=>r.kind==='song'&&r.payload?.songId===id).sort((a,b)=>b.created_at.localeCompare(a.created_at));
+function renderSongDetail(id){const song=allSongs().find(s=>s.id===id);if(!song)return `${pageHeader('Repertoire','Song not found','Choose a song from the list.')}`;const prev=latestSong(id)||{key:song.initialKey||'',tempo:song.initialTempo||null};const trackPanel=renderSongTrackPanel(id);
+ const related=DRILL_BY_ID[song.suggested]||DRILL_BY_ID['jazz-guide'];const entries=state.records.filter(r=>r.kind==='song'&&r.payload?.songId===id).sort((a,b)=>b.created_at.localeCompare(a.created_at));
  return `${pageHeader('Repertoire · Logos-Motive',song.title,song.focus,btn(`song-focus:${id}`,`${ic('play')} practice song · 12 min`,'primary'))}
  <div class="grid-main"><div><div class="card"><div class="card-header"><h2>Practice profile</h2>${tag(song.meter)}</div><div class="callout">${safe(song.notes)}</div><div class="form-row" style="margin-top:19px"><div class="form-group"><label for="song-key">Your arrangement key (optional)</label><input class="field" id="song-key" maxlength="12" value="${safe(prev.key||'')}" placeholder="e.g. G minor"/></div><div class="form-group"><label for="song-tempo">Target BPM (optional)</label><input class="field" id="song-tempo" inputmode="numeric" type="number" min="30" max="260" value="${safe(prev.tempo||'')}" placeholder="e.g. 65"/></div><div class="form-group"><label for="song-readiness">Performance readiness</label><select id="song-readiness">${[['learning','Learning'],['developing','Developing'],['ready','Performance ready'],['maintaining','Maintenance']].map(([v,label])=>`<option value="${v}" ${(prev.readiness||'learning')===v?'selected':''}>${label}</option>`).join('')}</select></div></div>
  <h3 style="margin-top:24px">practiced components</h3><div class="song-sections">${[['harmony','Harmony'],['picking','Picking / tone'],['solo','Melody / solo'],['structure','Structure / transitions'],['vocals','Vocal coordination']].map(([id,label])=>`<label><input type="checkbox" data-song-section="${id}" ${(prev.sections||[]).includes(id)?'checked':''}/> ${label}</label>`).join('')}</div>
@@ -349,7 +374,21 @@ const a=state.active,entry=currentDrill();if(!entry)return;pauseTimer();metronom
  entry.done=true;entry.ratingPct=percent;entry.bpm=p.bpm;entry.seconds=p.seconds;a.position++;a.elapsedMs=0;a.startedAt=null;a.timerNotifiedFor=-1;saveState(state);showRating=false;diagramStep=-1;cloud.sync();render();}
 function finishEarly(){if(!state.active)return;pauseTimer();metronome.stop();state.active.position=state.active.entries.length;saveState(state);render();}
 function saveCompletedSession(){const a=state.active;if(!a)return;pauseTimer();metronome.stop();a.notes=$('session-notes')?.value?.trim()||'';const seconds=a.entries.reduce((total,x)=>total+(x.seconds||0),0);addRecord(state,'session',{sessionId:a.id,key:a.key,mode:a.mode,dayNumber:a.dayNumber,songId:a.songId,drillsCompleted:a.entries.filter(x=>x.done).length,drillsPlanned:a.entries.length,durationMinutes:Math.round(seconds/60),plannedMinutes:a.entries.reduce((sum,e)=>sum+e.minutes,0),notes:a.notes,isFree:a.isFree});state.active=null;saveState(state);cloud.sync();showToast('Session saved. Your next key is ready.');setRoute('progress');}
-function saveSong(id){const s=SONGS.find(x=>x.id===id);if(!s)return;const tempo=Number($('song-tempo')?.value||0);const key=$('song-key')?.value?.trim()?.slice(0,12)||'';const notes=$('song-notes')?.value?.trim()||'';const readiness=$('song-readiness')?.value||'learning';const sections=[...document.querySelectorAll('input[data-song-section]:checked')].map(x=>x.dataset.songSection);
+function addManualSongFromForm(){
+ try{
+  const get=id=>$(id)?.value||'';
+  const song=newCustomSong({
+   title:get('new-song-title'),meter:get('new-song-meter'),initialKey:get('new-song-key'),
+   initialTempo:get('new-song-bpm'),focus:get('new-song-focus'),
+   suggested:get('new-song-drill'),notes:get('new-song-notes')
+  },allSongs());
+  addRecord(state,CUSTOM_SONG_KIND,song);
+  cloud.sync();
+  setRoute('song/'+song.id);
+  showToast('Song added to your repertoire');
+ }catch(error){showToast('Could not add song: '+error.message);}
+}
+function saveSong(id){const s=allSongs().find(x=>x.id===id);if(!s)return;const tempo=Number($('song-tempo')?.value||0);const key=$('song-key')?.value?.trim()?.slice(0,12)||'';const notes=$('song-notes')?.value?.trim()||'';const readiness=$('song-readiness')?.value||'learning';const sections=[...document.querySelectorAll('input[data-song-section]:checked')].map(x=>x.dataset.songSection);
  addRecord(state,'song',{songId:id,key,tempo:tempo>=30&&tempo<=260?tempo:null,readiness,sections,notes});cloud.sync();showToast('Song profile saved');render();}
 function exportJson(){const data={app:'Guitar Practice Lab',version:APP_VERSION,exportedAt:new Date().toISOString(),records:state.records,settings:state.settings};downloadText(`guitar-practice-lab-backup-${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(data,null,2),'application/json');}
 async function copyWeekly(){const report=weeklyReport(state);try{await navigator.clipboard.writeText(report);showToast('7-day report copied. Paste it into ChatGPT.');}catch{downloadWeekly();showToast('Clipboard unavailable. Downloaded report instead.');}}
@@ -379,6 +418,7 @@ function movePracticeStage(delta){
  saveState(state);render();
 }
 const actions={
+ 'add-manual-song':addManualSongFromForm,
  'mode-back':()=>{modalStep=Math.max(-1,modalStep-1);render();},
  'mode-next':()=>{const n=scaleFor(modalId,modalKey).intervals.length;modalStep=(modalStep+1)%n;render();},
  'mode-reset':()=>{modalStep=-1;render();},
