@@ -4,6 +4,7 @@ import {harmonizeSelectedMode} from './modal-harmony.js';
 import {buildExample,renderTabSvg,renderFretboardSvg,shellShapes,chordDiagramSvg,progressionFor,enclosureGuide,enclosureInstructions,escapeHtml as e,pitchName,keyPc,INTERVALS,buildNotePath} from './music.js';
 import {ARTIST_PROFILES,VOCAB_STUDIES,vocabularyNotes} from './vocabulary.js';
 import {renderStaffTabSvg} from './staff-notation.js';
+import {referenceStudyNotes} from './reference-studies.js';
 import {SongTrackPlayer,songClock} from './song-audio.js';
 import {MODE_FAMILIES,MODE_DEFINITIONS,scaleFor,diatonicSevenths,scaleTabTargets} from './theory-lab.js';
 import {OPEN_STRING_PITCHES,PITCH_CHOICES,pitchFrequency,registerTempoTap,ReferencePitchPlayer} from './reference-pitch.js';
@@ -108,6 +109,7 @@ function referencePattern(d,key){
  return null;
 }
 function drillDiagramNotes(d,key,stage){
+ const study=referenceStudyNotes(d?.id,key);if(study)return study;
  return referencePattern(d,key)?.notes||buildExample(stage?.exampleKind||d.kind,key,d.quality||'maj7',d.octaves||2,state.settings.position);
 }
 function referencePatternControls(d,key){
