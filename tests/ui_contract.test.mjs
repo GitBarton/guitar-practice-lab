@@ -120,7 +120,7 @@ test('interactive modes route, key/mode selectors and active note navigation are
  assert.match(app,/mode-step:/);
  assert.match(app,/mode-next/);
  assert.match(app,/mode-back/);
- assert.match(app,/diatonicSevenths\(modalKey\)/);
+ assert.match(app,/harmonizeSelectedMode\(scale\)/);
  assert.match(css,/\.mode-diatonic-grid/);
  assert.match(sw,/'\.\/theory-lab\.js'/);
 });
@@ -175,7 +175,7 @@ test('Jazz Masters vocabulary zone has four artists, valid controls, reference l
  assert.match(app,/data-vocabulary="study"/);
  assert.match(app,/data-vocabulary="key"/);
  assert.match(app,/vocab-next/);
- assert.match(app,/renderTabSvg\(notes,current/);
+ assert.match(app,/renderGuitarStaff\(notes,current/);
  assert.match(app,/artist\.source/);
  assert.match(sw,/'\.\/vocabulary\.js'/);
 });
@@ -237,7 +237,7 @@ test('repertoire page provides validated manual-song form and includes it throug
  assert.match(app,/id="new-song-focus"/);
  assert.match(app,/id="new-song-drill"/);
  assert.match(app,/id="new-song-notes"/);
- assert.match(app,/data-action="add-manual-song"/);
+ assert.match(app,/btn\('add-manual-song'/);
  assert.match(app,/function addManualSongFromForm\(\)/);
  assert.match(app,/addRecord\(state,CUSTOM_SONG_KIND,song\)/);
  assert.match(app,/allSongs\(\)\.find\(s=>s\.id===id\)/);
