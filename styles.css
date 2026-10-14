@@ -143,3 +143,7 @@ body[data-theme="light"]{color-scheme:light;--bg:#f2f5f7;--side:#fff;--panel:#ff
  .target-tone-display svg .on-note,
  .target-tone-display svg circle[stroke="#fff"]{animation:none}
 }
+
+/* Original Jazz Masters phrase studies, readable without external assets */
+#app .card:has([data-vocabulary]) h2{margin:19px 0 8px;font-size:20px}
+@media(max-width:650px){#app .card:has([data-vocabulary]) .form-row{flex-direction:column}}

@@ -1,6 +1,7 @@
 import {APP_VERSION,KEYS,CATEGORIES,SONGS,DRILLS,DRILL_BY_ID,REFERENCES,REFERENCE_BY_ID,RELEASE_NOTES,SESSION_DURATIONS,SESSION_MODES,stageCount,currentStage,clampedStageIndex,makeSession} from './data.js';
 import {buildExample,renderTabSvg,renderFretboardSvg,shellShapes,chordDiagramSvg,progressionFor,enclosureGuide,enclosureInstructions,escapeHtml as e,pitchName,keyPc,INTERVALS,buildNotePath} from './music.js';
 import {SongTrackPlayer,songClock} from './song-audio.js';
+import {ARTIST_PROFILES,VOCAB_STUDIES,vocabularyNotes} from './vocabulary.js';
 import {MODE_FAMILIES,MODE_DEFINITIONS,scaleFor,diatonicSevenths,scaleTabTargets} from './theory-lab.js';
 import {buildTwoFiveOne,clampHarmonyTempo} from './harmony.js';
 import {ChordBacking} from './backing-audio.js';
@@ -28,7 +29,7 @@ const ic=(name)=>`<span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"
 const btn=(action,label,cls='')=>`<button type="button" class="btn ${cls}" data-action="${action}">${label}</button>`;
 const tag=(s,special=false)=>`<span class="pill${special?' special':''}">${safe(s)}</span>`;
 const rect=(title,description,action)=>`<a class="list-row" href="${action}"><span class="row-main"><div class="row-title">${safe(title)}</div><div class="row-desc">${safe(description)}</div></span>${ic('chevron')}</a>`;
-const nav=[['today','Today','home'],['modes','Modes & Harmony','music'],['practice','Practice','play'],['songs','Songs','music'],['harmony','ii–V–I Zone','music'],['drills','Drills','library'],['references','References','book'],['progress','Progress','chart']];
+const nav=[['today','Today','home'],['modes','Modes & Harmony','music'],['vocabulary','Jazz Masters','music'],['practice','Practice','play'],['songs','Songs','music'],['harmony','ii–V–I Zone','music'],['drills','Drills','library'],['references','References','book'],['progress','Progress','chart']];
 let currentHash='';
 function route(){const parts=decodeURIComponent(location.hash.replace(/^#/,'')||'today').split('/');return {page:parts[0],id:parts.slice(1).join('/')};}
 function setRoute(r){if(location.hash==='#'+r){render();return;}location.hash=r;}
@@ -39,12 +40,12 @@ function latestSong(songId){return state.records.filter(r=>r.kind==='song'&&r.pa
 function todayKey(){return state.settings.selectedKey==='auto'?KEYS[countSessions()%KEYS.length]:state.settings.selectedKey;}
 function showToast(msg){const el=$('toast');if(!el)return;clearTimeout(toastTimeout);el.textContent=msg;el.className='visible';toastTimeout=setTimeout(()=>{el.className='';},3200);}
 const cloud=new CloudSync({state,onUpdate:()=>render(),onStatus:(m,k)=>{cloudMessage=m;cloudKind=k;const msg=$('cloud-status');if(msg){msg.textContent=m;msg.className='status '+k;}const side=$('sidebar-status');if(side){side.textContent=m;}}});
-function shell(content){const r=route(),active=['today','practice','songs','harmony','drills','references','progress'].includes(r.page)?r.page:(r.page==='drill'?'drills':r.page==='song'?'songs':r.page==='reference'?'references':'today');
+function shell(content){const r=route(),active=['today','practice','songs','harmony','modes','vocabulary','drills','references','progress'].includes(r.page)?r.page:(r.page==='drill'?'drills':r.page==='song'?'songs':r.page==='reference'?'references':'today');
  const navHTML=nav.map(([href,text,icon])=>`<a href="#${href}" class="nav-item ${active===href?'active':''}" ${active===href?'aria-current="page"':''}><span class="nav-ic">${ic(icon)}</span>${text}</a>`).join('');
  return `<div class="shell"><aside class="sidebar"><a href="#today" class="brand route-link"><span class="brand-mark">${ic('music')}</span><div><div class="brand-title">Guitar Practice Lab</div><div class="brand-small">Music · Precision · Flow</div></div></a><nav class="nav" aria-label="Main navigation">${navHTML}</nav><div class="side-bottom"><div class="small"><span class="sync-pip ${cloud.user?'good':''}"></span>Practice data</div><p id="sidebar-status">${safe(cloudMessage)}</p><a href="#settings">${ic('settings')} &nbsp; Settings & cloud</a></div></aside><div class="main-wrap"><div class="topbar"><div><span class="eyebrow">Practice Workspace</span></div><div class="top-right">${state.active?tag('Session in progress',true):''}<a href="#releases" class="pill release-link" title="View release notes">v${APP_VERSION} · What's new</a><a class="btn small ghost" href="#settings">${ic('settings')}<span class="desktop-only">Settings</span></a></div></div><main class="page" id="main-content">${content}</main></div></div>`;
 }
 function render(){document.body.dataset.theme=state.settings.theme;const r=route();let html='';
- switch(r.page){case 'today':html=renderToday();break;case 'practice':html=renderPractice();break;case 'drills':html=renderDrills();break;case 'drill':html=renderDrillDetail(r.id);break;case 'songs':html=renderSongs();break;case 'harmony':html=renderHarmony();break;case 'modes':html=renderModesLab();break;case 'song':html=renderSongDetail(r.id);break;case 'references':html=renderReferences();break;case 'reference':html=renderReferenceDetail(r.id);break;case 'progress':html=renderProgress();break;case 'releases':html=renderReleases();break;case 'settings':html=renderSettings();break;default:html=renderToday();}
+ switch(r.page){case 'today':html=renderToday();break;case 'practice':html=renderPractice();break;case 'drills':html=renderDrills();break;case 'drill':html=renderDrillDetail(r.id);break;case 'songs':html=renderSongs();break;case 'harmony':html=renderHarmony();break;case 'modes':html=renderModesLab();break;case 'vocabulary':html=renderVocabularyLab();break;case 'song':html=renderSongDetail(r.id);break;case 'references':html=renderReferences();break;case 'reference':html=renderReferenceDetail(r.id);break;case 'progress':html=renderProgress();break;case 'releases':html=renderReleases();break;case 'settings':html=renderSettings();break;default:html=renderToday();}
  $('app').innerHTML=shell(html);updateClock();updateSongTrackUI();if(r.page==='drills')filterDrills();}
 function queueOverview(s){return `<div class="list">${s.entries.map((entry,i)=>{const d=DRILL_BY_ID[entry.id];return `<div class="step-row ${entry.done?'done':''}"><div class="step-n">${entry.done?'✓':i+1}</div><div class="step-info"><div class="step-name">${safe(d?.title||'Song practice')}</div><div class="step-min">${safe(d?.category?categoryTitle(d.category):'Repertoire')} · ${entry.minutes} min</div></div><span class="small muted">${entry.minutes}:00</span></div>`;}).join('')}</div>`;}
 function renderToday(){const complete=countSessions(),recent=lastSeven(),sessions=recent.filter(r=>r.kind==='session'),minutes=sessions.reduce((x,s)=>x+(Number(s.payload?.durationMinutes)||0),0),pctScores=recent.filter(r=>r.kind==='drill').map(r=>validRatingPercent(r.payload)).filter(n=>n!==null),avgQuality=pctScores.length?Math.round(pctScores.reduce((a,b)=>a+b,0)/pctScores.length):null;
@@ -161,6 +162,36 @@ function renderModesLab(){
  <div class="mode-diatonic-grid">${chords.map(ch=>`<div class="mode-diatonic"><span class="eyebrow">${safe(ch.role)}</span><strong>${safe(ch.symbol)}</strong><span class="micro muted">${safe(ch.quality)}</span></div>`).join('')}</div>
  <p class="footnote">Reference: Berklee Online’s Jazz Scales and Voice Leading for Guitar. The app transposes verified pitch classes; exact physical fingering patterns require a separate reference-audited route library.</p>
  </section>`;
+}
+let vocabularyArtist='montgomery',vocabularyStudy='wes-octave',vocabularyKey='C',vocabularyNote=-1;
+function renderVocabularyLab(){
+ const artist=ARTIST_PROFILES.find(p=>p.id===vocabularyArtist)||ARTIST_PROFILES[0];
+ const choices=VOCAB_STUDIES.filter(s=>s.artist===artist.id);
+ const exercise=choices.find(s=>s.id===vocabularyStudy)||choices[0];
+ if(exercise.id!==vocabularyStudy)vocabularyStudy=exercise.id;
+ const notes=vocabularyNotes(exercise.id,vocabularyKey),beatCount=notes.reduce((max,n)=>Math.max(max,n.beat??n.index),0)+1;
+ const current=vocabularyNote>=0?Math.min(notes.length-1,vocabularyNote):-1;
+ return `${pageHeader('Jazz guitar','Jazz Masters — vocabulary practice','Original, source-informed guitar studies; not transcriptions of protected recordings or published solos.')}
+ <div class="card">
+ <div class="form-row">
+ <div class="form-group"><label>Player and concept</label><select data-vocabulary="artist">${ARTIST_PROFILES.map(p=>`<option value="${p.id}" ${p.id===artist.id?'selected':''}>${safe(p.name)}</option>`).join('')}</select></div>
+ <div class="form-group"><label>Study</label><select data-vocabulary="study">${choices.map(c=>`<option value="${c.id}" ${c.id===exercise.id?'selected':''}>${safe(c.title)}</option>`).join('')}</select></div>
+ <div class="form-group"><label>Key</label><select data-vocabulary="key">${KEYS.map(k=>`<option value="${k}" ${k===vocabularyKey?'selected':''}>${k}</option>`).join('')}</select></div>
+ </div>
+ <h2>${safe(exercise.title)}</h2><p class="muted">${safe(exercise.focus)}</p>
+ <div class="buttons" style="margin:12px 0">${btn('vocab-prev','← Previous target','small')}${btn('vocab-next','Next target →','small primary')}${btn('vocab-reset','All notes','small ghost')}${tag(beatCount+' attacks')}</div>
+ <div class="diagram-viewport">${renderTabSvg(notes,current,state.settings.labels)}</div>
+ <div class="diagram-viewport" style="margin-top:14px">${renderFretboardSvg(notes,current,state.settings.labels)}</div>
+ <h3>Practice steps</h3><ol class="instruction-list">${exercise.instructions.map(i=>`<li>${safe(i)}</li>`).join('')}</ol>
+ <p class="footnote">Original exercises inspired by documented playing concepts, not attributed note-for-note licks. Notes and simultaneous octave/dyad attacks are computed from standard tuning and verified in all 12 keys.</p>
+ </div>
+ <div class="card" style="margin-top:15px">
+ <div class="card-header"><h3>Source and listening context</h3></div>
+ <p><strong>${safe(artist.name)}</strong>: ${safe(artist.theme)}.</p>
+ <p>${safe(artist.provenance)}</p>
+ <a href="${safe(artist.source)}" target="_blank" rel="noopener noreferrer">Read the published interview or guitar lesson →</a>
+ <p class="footnote">For exact lines from a recording, use a properly licensed transcription or your own listening/transcription work. This app intentionally does not reproduce protected solos.</p>
+ </div>`;
 }
 function renderHarmony(){
  const plan=buildTwoFiveOne(harmonySettings.key,harmonySettings.mode);
@@ -379,6 +410,10 @@ function movePracticeStage(delta){
  saveState(state);render();
 }
 const actions={
+ 'vocab-prev':()=>{vocabularyNote=Math.max(-1,vocabularyNote-1);render();},
+ 'vocab-next':()=>{vocabularyNote=(vocabularyNote+1)%vocabularyNotes(vocabularyStudy,vocabularyKey).length;render();},
+ 'vocab-reset':()=>{vocabularyNote=-1;render();},
+
  'mode-back':()=>{modalStep=Math.max(-1,modalStep-1);render();},
  'mode-next':()=>{const n=scaleFor(modalId,modalKey).intervals.length;modalStep=(modalStep+1)%n;render();},
  'mode-reset':()=>{modalStep=-1;render();},
@@ -434,6 +469,16 @@ function handlePracticeShortcut(ev){
 document.addEventListener('keydown',handlePracticeShortcut);
 document.addEventListener('click',async ev=>{const btn=ev.target.closest('[data-action]');if(!btn)return;ev.preventDefault();const name=btn.dataset.action;if(name?.startsWith('mode-step:')){const i=Number(name.slice(10));if(Number.isInteger(i)&&i>=0&&i<scaleFor(modalId,modalKey).intervals.length){modalStep=i;render();}return;}if(name?.startsWith('drill-filter:'))return setDrillCategory(name.slice(13));if(name?.startsWith('start-free:'))return startSession(true,name.slice(11));if(name?.startsWith('song-focus:'))return startSession(true,null,name.slice(11));if(name?.startsWith('save-song:'))return saveSong(name.slice(10));if(name?.startsWith('rating-set:'))return setRatingPercent(Number(name.slice(11)));const handler=actions[name];if(handler){try{await handler();}catch(error){console.error(error);showToast('Action failed: '+error.message);}}});
 document.addEventListener('change',async ev=>{const el=ev.target;
+ if(el.dataset.vocabulary){
+  const category=el.dataset.vocabulary;
+  if(category==='artist'&&ARTIST_PROFILES.some(p=>p.id===el.value)){
+   vocabularyArtist=el.value;vocabularyStudy=VOCAB_STUDIES.find(s=>s.artist===vocabularyArtist).id;
+  }else if(category==='study'&&VOCAB_STUDIES.some(s=>s.id===el.value&&s.artist===vocabularyArtist)){vocabularyStudy=el.value;}
+  else if(category==='key'&&KEYS.includes(el.value)){vocabularyKey=el.value;}
+  vocabularyNote=-1;render();return;
+ }
+
+
  if(el.dataset.theory){
   const prop=el.dataset.theory;
   if(prop==='family'&&MODE_FAMILIES.some(f=>f.id===el.value)){
