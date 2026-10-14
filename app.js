@@ -1,6 +1,7 @@
 import {APP_VERSION,KEYS,CATEGORIES,SONGS,DRILLS,DRILL_BY_ID,REFERENCES,REFERENCE_BY_ID,RELEASE_NOTES,SESSION_DURATIONS,SESSION_MODES,stageCount,currentStage,clampedStageIndex,makeSession} from './data.js';
 import {buildExample,renderTabSvg,renderFretboardSvg,shellShapes,chordDiagramSvg,progressionFor,enclosureGuide,enclosureInstructions,escapeHtml as e,pitchName,keyPc,INTERVALS,buildNotePath} from './music.js';
 import {SongTrackPlayer,songClock} from './song-audio.js';
+import {OPEN_STRING_PITCHES,PITCH_CHOICES,pitchFrequency,registerTempoTap,ReferencePitchPlayer} from './reference-pitch.js';
 import {buildTwoFiveOne,clampHarmonyTempo} from './harmony.js';
 import {ChordBacking} from './backing-audio.js';
 import {loadState,saveState,addRecord,uid,weeklyReport,downloadText,exportCsv,importedSnapshot,validRatingPercent,isHighQualityDrill,ratingDisplay,CloudSync} from './storage.js';
@@ -13,6 +14,8 @@ if((!state.cloud?.url||!state.cloud?.key)&&(publishedCloud.supabaseUrl||publishe
 }
 document.body.dataset.theme=state.settings.theme;
 const songTrackPlayer=new SongTrackPlayer(()=>updateSongTrackUI());
+const referencePitch=new ReferencePitchPlayer();
+let selectedHomePitch=45,homeTempoTaps=[];
 const harmonySettings=Object.assign({key:'C',mode:'major',tempo:72,barsPerChord:2,volume:.7,reverb:.42,click:false},state.settings.harmony||{});
 let harmonyPosition=null,harmonyStarted=0,harmonyElapsed=0;
 const harmonyBacking=new ChordBacking(position=>{harmonyPosition=position;updateHarmonyUI();});
@@ -42,10 +45,42 @@ function shell(content){const r=route(),active=['today','practice','songs','harm
  const navHTML=nav.map(([href,text,icon])=>`<a href="#${href}" class="nav-item ${active===href?'active':''}" ${active===href?'aria-current="page"':''}><span class="nav-ic">${ic(icon)}</span>${text}</a>`).join('');
  return `<div class="shell"><aside class="sidebar"><a href="#today" class="brand route-link"><span class="brand-mark"><img class="brand-guitar" src="./icon.svg" alt="" width="48" height="48" /></span><div><div class="brand-title">Guitar Practice Lab</div><div class="brand-small">Music · Precision · Flow</div></div></a><nav class="nav" aria-label="Main navigation">${navHTML}</nav><div class="side-bottom"><div class="small"><span class="sync-pip ${cloud.user?'good':''}"></span>Practice data</div><p id="sidebar-status">${safe(cloudMessage)}</p><a href="#settings">${ic('settings')} &nbsp; Settings & cloud</a></div></aside><div class="main-wrap"><div class="topbar"><div><span class="eyebrow">Practice Workspace</span></div><div class="top-right">${state.active?tag('Session in progress',true):''}<a href="#releases" class="pill release-link" title="View release notes">v${APP_VERSION} · What's new</a><a class="btn small ghost" href="#settings">${ic('settings')}<span class="desktop-only">Settings</span></a></div></div><main class="page" id="main-content">${content}</main></div></div>`;
 }
-function render(){document.body.dataset.theme=state.settings.theme;const r=route();let html='';
+function render(){document.body.dataset.theme=state.settings.theme;const r=route();if(r.page!=='today')referencePitch.stop();let html='';
  switch(r.page){case 'today':html=renderToday();break;case 'practice':html=renderPractice();break;case 'drills':html=renderDrills();break;case 'drill':html=renderDrillDetail(r.id);break;case 'songs':html=renderSongs();break;case 'harmony':html=renderHarmony();break;case 'song':html=renderSongDetail(r.id);break;case 'references':html=renderReferences();break;case 'reference':html=renderReferenceDetail(r.id);break;case 'progress':html=renderProgress();break;case 'releases':html=renderReleases();break;case 'settings':html=renderSettings();break;default:html=renderToday();}
  $('app').innerHTML=shell(html);updateClock();updateSongTrackUI();if(r.page==='drills')filterDrills();}
 function queueOverview(s){return `<div class="list">${s.entries.map((entry,i)=>{const d=DRILL_BY_ID[entry.id];return `<div class="step-row ${entry.done?'done':''}"><div class="step-n">${entry.done?'✓':i+1}</div><div class="step-info"><div class="step-name">${safe(d?.title||'Song practice')}</div><div class="step-min">${safe(d?.category?categoryTitle(d.category):'Repertoire')} · ${entry.minutes} min</div></div><span class="small muted">${entry.minutes}:00</span></div>`;}).join('')}</div>`;}
+function renderHomeMusicTools(){
+ const selected=PITCH_CHOICES.find(p=>p.midi===selectedHomePitch)||PITCH_CHOICES[5];
+ const frequency=pitchFrequency(selected.midi).toFixed(2);
+ return `<section class="home-music-tools" aria-label="Quick music tools">
+  <div class="card home-music-card">
+   <div class="home-music-head"><div><div class="eyebrow">Tune by ear</div><h2>Reference pitch</h2></div><span class="home-music-icon" aria-hidden="true">${ic('music')}</span></div>
+   <div class="home-pitch-current"><strong id="home-pitch-note">${safe(selected.label)}</strong><span id="home-pitch-hz">${frequency} Hz</span></div>
+   <div class="home-string-buttons" role="group" aria-label="Guitar open-string reference pitches">
+     ${OPEN_STRING_PITCHES.map(p=>`<button type="button" class="home-string-button ${selectedHomePitch===p.midi?'active':''}" data-action="home-pitch:${p.midi}" aria-pressed="${selectedHomePitch===p.midi}" title="Hear string ${p.string}: ${safe(p.id)}"><strong>${safe(p.id)}</strong><small>${safe(p.label)}</small></button>`).join('')}
+   </div>
+   <div class="home-pitch-controls"><div class="form-group"><label for="home-chromatic-note">Chromatic pitch (A4 = 440 Hz)</label>
+      <select id="home-chromatic-note" data-home-pitch-select aria-label="Select chromatic reference note">${PITCH_CHOICES.map(p=>`<option value="${p.midi}" ${selectedHomePitch===p.midi?'selected':''}>${safe(p.label)}</option>`).join('')}</select></div>
+      <button type="button" class="btn ${referencePitch.playing?'warn':'primary'}" data-action="home-pitch-play" aria-pressed="${referencePitch.playing}">${referencePitch.playing?'■ Stop tone':'▶ Play tone'}</button></div>
+   <p class="home-tool-explain">A generated tuning note only. <strong>No microphone, recording or listening.</strong> Turn your device volume down before playing.</p>
+  </div>
+  <div class="card home-music-card">
+   <div class="home-music-head"><div><div class="eyebrow">Keep time</div><h2>Metronome</h2></div><span class="home-music-icon" aria-hidden="true">${ic('clock')}</span></div>
+   <div class="home-metro-display"><strong id="home-metronome-bpm">${Number(state.settings.defaultBpm)||70}</strong><span>BPM</span><span class="home-metro-indicator ${metronome.playing?'playing':''}" aria-label="${metronome.playing?'Metronome running':'Metronome stopped'}"></span></div>
+   <div class="home-metro-buttons">
+     <button type="button" class="btn" data-action="home-bpm-down" aria-label="Decrease tempo 5 BPM">−5</button>
+     <button type="button" class="btn ${metronome.playing?'warn':'primary'}" data-action="home-metro-play" aria-pressed="${metronome.playing}">${metronome.playing?'■ Stop click':'▶ Start click'}</button>
+     <button type="button" class="btn" data-action="home-bpm-up" aria-label="Increase tempo 5 BPM">+5</button>
+     <button type="button" class="btn ghost" data-action="home-bpm-tap">Tap tempo</button>
+   </div>
+   <div class="home-metro-selectors">
+    <div class="form-group"><label for="home-metronome-meter">Meter</label><select id="home-metronome-meter" data-setting="meter"><option value="4/4" ${state.settings.meter==='4/4'?'selected':''}>4/4</option><option value="6/8" ${state.settings.meter==='6/8'?'selected':''}>6/8</option></select></div>
+    <div class="form-group"><label for="home-metronome-subdivision">Subdivision</label><select id="home-metronome-subdivision" data-setting="subdivision"><option value="quarter" ${state.settings.subdivision==='quarter'?'selected':''}>Quarter pulse</option><option value="swing" ${state.settings.subdivision==='swing'?'selected':''}>Swing</option><option value="triplet" ${state.settings.subdivision==='triplet'?'selected':''}>Triplets</option></select></div>
+   </div>
+   <p class="home-tool-explain">Uses the same metronome and BPM as Practice. Tap steadily at least twice to set your tempo.</p>
+  </div>
+ </section>`;
+}
 function renderToday(){const complete=countSessions(),recent=lastSeven(),sessions=recent.filter(r=>r.kind==='session'),minutes=sessions.reduce((x,s)=>x+(Number(s.payload?.durationMinutes)||0),0),pctScores=recent.filter(r=>r.kind==='drill').map(r=>validRatingPercent(r.payload)).filter(n=>n!==null),avgQuality=pctScores.length?Math.round(pctScores.reduce((a,b)=>a+b,0)/pctScores.length):null;
  const mode=state.settings.selectedMode,duration=SESSION_DURATIONS.includes(Number(state.settings.selectedDuration))?Number(state.settings.selectedDuration):45,preview=makeSession(complete,mode,state.settings.selectedSong,duration);if(state.settings.selectedKey!=='auto')preview.key=state.settings.selectedKey;
  const modeLabel=SESSION_MODES.find(([id])=>id===mode)?.[1]||'Technique';
@@ -53,6 +88,7 @@ function renderToday(){const complete=countSessions(),recent=lastSeven(),session
  const top=state.active?`<section class="hero"><div class="eyebrow">Resume where you left off</div><h2>Session in progress · ${safe(state.active.key)}</h2><p>${planDuration} minutes planned · ${safe(SESSION_MODES.find(([id])=>id===state.active.mode)?.[1]||'Practice')} · your progress is saved locally.</p><div class="buttons">${btn('resume-session',`${ic('play')} Resume practice`,'primary')}</div></section>`:`<section class="hero"><div class="eyebrow">A session built around your focus</div><h2>${safe(modeLabel)} · ${duration} minutes</h2><p>Your plan combines ${preview.entries.length} focused blocks in ${safe(preview.key)}. Choose the duration and type of work you want to prioritize.</p><div class="buttons">${btn('start-session',`${ic('play')} Start ${duration}-minute session`,'primary')}${tag('Day '+(complete+1)+' · '+modeLabel)}</div></section>`;
  return `${pageHeader('Home','Ready to practice?','A consistent system for technique, jazz language and live repertoire.')}
  <div class="metrics"><div class="metric"><div class="label">Sessions · last 7 days</div><div class="number">${sessions.length}</div></div><div class="metric"><div class="label">Minutes · last 7 days</div><div class="number">${minutes}</div></div><div class="metric"><div class="label">Average quality · last 7 days</div><div class="number">${avgQuality===null?'—':avgQuality+'%'}</div><div class="micro muted">${pctScores.length} percentage rating(s)</div></div></div>
+ ${renderHomeMusicTools()}
  <div class="grid-main"><div>${top}<div style="height:20px"></div><div class="card"><div class="card-header"><h2>Today's ${planDuration}-minute plan</h2>${tag('Key '+preview.key,true)}</div>${queueOverview(state.active||preview)}</div></div>
  <aside class="card"><div class="card-header"><h3>Session setup</h3>${ic('target')}</div><div class="form-group"><label for="mode">Practice mode</label><select id="mode" data-setting="selectedMode" ${state.active?'disabled':''}>${SESSION_MODES.map(([id,label])=>`<option value="${id}" ${mode===id?'selected':''}>${safe(label)}</option>`).join('')}</select></div><div class="form-group" style="margin-top:13px"><label for="duration">Session length</label><select id="duration" data-setting="selectedDuration" ${state.active?'disabled':''}>${SESSION_DURATIONS.map(n=>`<option value="${n}" ${duration===n?'selected':''}>${n} minutes${n===45?' · original':''}</option>`).join('')}</select></div><div class="form-group" style="margin-top:13px"><label for="key">Primary key</label><select id="key" data-setting="selectedKey" ${state.active?'disabled':''}><option value="auto" ${state.settings.selectedKey==='auto'?'selected':''}>Auto · circle of fourths</option>${KEYS.map(k=>`<option value="${k}" ${state.settings.selectedKey===k?'selected':''}>${k}</option>`).join('')}</select></div><div class="form-group" style="margin-top:13px"><label for="song">Repertoire focus</label><select id="song" data-setting="selectedSong" ${state.active?'disabled':''}>${SONGS.map(s=>`<option value="${s.id}" ${state.settings.selectedSong===s.id?'selected':''}>${safe(s.title)}</option>`).join('')}</select></div><div class="divider"></div><div class="eyebrow">Key rotation</div><div class="key-grid" style="margin-top:12px">${KEYS.map((k,i)=>`<div class="key-tile ${preview.key===k?'current':''}">${k.replace('b','♭')}</div>`).join('')}</div><p class="footnote">One primary key per practice day. A full rotation takes 12 sessions; override the key when needed.</p></aside></div>`;
 }
@@ -348,6 +384,20 @@ function movePracticeStage(delta){
  saveState(state);render();
 }
 const actions={
+ 'home-pitch-play':async()=>{
+   try{metronome.stop();stopHarmonyPlayback();songTrackPlayer.pause();await referencePitch.toggle(selectedHomePitch);}
+   catch(error){showToast('Reference tone unavailable: '+error.message);}
+   render();
+ },
+ 'home-metro-play':async()=>{referencePitch.stop();stopHarmonyPlayback();songTrackPlayer.pause();await metronome.toggle();render();},
+ 'home-bpm-up':()=>changeTempo(5),
+ 'home-bpm-down':()=>changeTempo(-5),
+ 'home-bpm-tap':()=>{
+   const result=registerTempoTap(homeTempoTaps,Date.now());homeTempoTaps=result.taps;
+   if(result.bpm!==null){state.settings.defaultBpm=result.bpm;saveState(state);}
+   render();
+ },
+
  'harmony-play':toggleHarmonyPlayback,'harmony-stop':stopHarmonyPlayback,
  'harmony-slower':()=>harmonyTempoChange(-5),'harmony-faster':()=>harmonyTempoChange(5),
  'harmony-log':logHarmonyAttempt,
@@ -398,8 +448,24 @@ function handlePracticeShortcut(ev){
  return false;
 }
 document.addEventListener('keydown',handlePracticeShortcut);
-document.addEventListener('click',async ev=>{const btn=ev.target.closest('[data-action]');if(!btn)return;ev.preventDefault();const name=btn.dataset.action;if(name?.startsWith('drill-filter:'))return setDrillCategory(name.slice(13));if(name?.startsWith('start-free:'))return startSession(true,name.slice(11));if(name?.startsWith('song-focus:'))return startSession(true,null,name.slice(11));if(name?.startsWith('save-song:'))return saveSong(name.slice(10));if(name?.startsWith('rating-set:'))return setRatingPercent(Number(name.slice(11)));const handler=actions[name];if(handler){try{await handler();}catch(error){console.error(error);showToast('Action failed: '+error.message);}}});
+document.addEventListener('click',async ev=>{const btn=ev.target.closest('[data-action]');if(!btn)return;ev.preventDefault();const name=btn.dataset.action;if(name?.startsWith('home-pitch:')){
+ const midi=Number(name.slice(11));
+ if(PITCH_CHOICES.some(p=>p.midi===midi)){
+  selectedHomePitch=midi;referencePitch.stop();
+  try{metronome.stop();stopHarmonyPlayback();songTrackPlayer.pause();await referencePitch.toggle(midi);}
+  catch(error){showToast('Reference tone unavailable: '+error.message);}
+  render();
+ }
+ return;
+}
+ if(name?.startsWith('drill-filter:'))return setDrillCategory(name.slice(13));if(name?.startsWith('start-free:'))return startSession(true,name.slice(11));if(name?.startsWith('song-focus:'))return startSession(true,null,name.slice(11));if(name?.startsWith('save-song:'))return saveSong(name.slice(10));if(name?.startsWith('rating-set:'))return setRatingPercent(Number(name.slice(11)));const handler=actions[name];if(handler){try{await handler();}catch(error){console.error(error);showToast('Action failed: '+error.message);}}});
 document.addEventListener('change',async ev=>{const el=ev.target;
+ if(el.id==='home-chromatic-note'){
+  const midi=Number(el.value);
+  if(PITCH_CHOICES.some(p=>p.midi===midi)){selectedHomePitch=midi;referencePitch.stop();render();}
+  return;
+ }
+
  if(el.dataset.harmonySetting){const key=el.dataset.harmonySetting;
   harmonySettings[key]=key==='click'?el.checked:key==='barsPerChord'?Number(el.value):key==='volume'?Number(el.value):el.value;
   state.settings.harmony={...harmonySettings};saveState(state);
@@ -443,8 +509,8 @@ window.addEventListener('hashchange',()=>{const r=route();if(r.page!=='harmony')
  const stillRelevant=(r.page==='song'&&r.id===songTrackPlayer.songId)||(r.page==='practice'&&state.active?.entries?.[state.active?.position]?.id==='song'&&state.active?.songId===songTrackPlayer.songId);
  if(!stillRelevant)songTrackPlayer.pause();
  showRating=false;diagramStep=-1;render();});
-document.addEventListener('visibilitychange',()=>{if(document.hidden){pauseTimer();metronome.stop();stopHarmonyPlayback();songTrackPlayer.pause();}});
-window.addEventListener('beforeunload',()=>{pauseTimer();metronome.stop();stopHarmonyPlayback();songTrackPlayer.dispose();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){pauseTimer();metronome.stop();stopHarmonyPlayback();songTrackPlayer.pause();referencePitch.stop();}});
+window.addEventListener('beforeunload',()=>{pauseTimer();metronome.stop();stopHarmonyPlayback();songTrackPlayer.dispose();referencePitch.dispose();});
 setInterval(()=>{updateClock();if(state.active?.startedAt)saveState(state);},1000);
 setInterval(()=>{if(cloud.user&&!document.hidden)cloud.sync();},120000);
 render();if(cloud.configured)cloud.init();
