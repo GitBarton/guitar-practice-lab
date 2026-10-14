@@ -162,3 +162,9 @@ body[data-theme="light"]{color-scheme:light;--bg:#f2f5f7;--side:#fff;--panel:#ff
 .mode-note-fingering small{font-size:10px;color:var(--muted)}
 .mode-note-fingering.is-root{border-color:var(--amber);box-shadow:inset 0 0 0 1px var(--amber)}
 @media(max-width:620px){.mode-position-selector{padding:11px}.mode-position-buttons{gap:4px}.mode-position-button{min-height:48px}.mode-position-button span{font-size:9px}.mode-note-fingering{min-width:45px;padding:5px}.mode-string-row{gap:8px}}
+
+/* Selected mode may have two characteristic chord colors instead of seven diatonic stacks. */
+.mode-diatonic-grid.modal-characteristic{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.mode-diatonic-grid .mode-diatonic{min-width:0}
+.mode-diatonic-grid .mode-diatonic strong{overflow-wrap:anywhere}
+.mode-diatonic-grid .mode-diatonic .micro{line-height:1.5}
