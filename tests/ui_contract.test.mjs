@@ -129,3 +129,25 @@ test('warm jazz studio theme retains visible controls in both light and dark mod
  assert.equal(manifest.theme_color,'#211f2d');
  assert.match(sw,/gpl-app-v1\.2\.0-warm-brand/);
 });
+
+test('Home offers reference pitch without microphone and reuses practice metronome',()=>{
+ const reference=readFileSync(new URL('../reference-pitch.js',import.meta.url),'utf8');
+ assert.match(app,/import \{OPEN_STRING_PITCHES,PITCH_CHOICES,pitchFrequency,registerTempoTap,ReferencePitchPlayer\}/);
+ assert.match(app,/function renderHomeMusicTools\(\)/);
+ assert.match(app,/renderHomeMusicTools\(\)/);
+ assert.match(app,/data-action="home-pitch:/);
+ assert.match(app,/data-action="home-pitch-play"/);
+ assert.match(app,/data-home-pitch-select/);
+ assert.match(app,/data-action="home-metro-play"/);
+ assert.match(app,/data-action="home-bpm-tap"/);
+ assert.match(app,/data-action="home-bpm-up"/);
+ assert.match(app,/data-action="home-bpm-down"/);
+ assert.match(app,/metronome\.toggle\(\)/);
+ assert.match(app,/registerTempoTap\(homeTempoTaps,Date\.now\(\)\)/);
+ assert.match(app,/referencePitch\.stop\(\)/);
+ assert.match(app,/referencePitch\.dispose\(\)/);
+ assert.match(css,/\.home-music-tools\{display:grid/);
+ assert.match(css,/\.home-string-button\.active/);
+ assert.match(sw,/'\.\/reference-pitch\.js'/);
+ assert.doesNotMatch(reference,/getUserMedia|mediaDevices|MediaRecorder|microphone.*permission/i);
+});
