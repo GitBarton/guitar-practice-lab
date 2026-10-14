@@ -53,3 +53,16 @@ test('reference-inspired lines transpose in all keys and stay physically playabl
  }
  assert.equal(referenceStudyNotes('missing'),null);
 });
+
+test('staff and TAB share columns with accessible interactive note selection',()=>{
+ const notes=[{string:5,fret:8,beat:0},{string:3,fret:10,beat:0},{string:1,fret:5,beat:1}];
+ const svg=renderStaffTabSvg(notes,'Bb',1,{actionPrefix:'score-focus'});
+ assert.match(svg,/class="guitar-staff-tab"/);
+ assert.match(svg,/data-action="score-focus:0"/);
+ assert.match(svg,/data-action="score-focus:1"/);
+ assert.match(svg,/data-action="score-focus:2"/);
+ assert.match(svg,/tabindex="0"/);
+ assert.match(svg,/Guitar treble staff/);
+ assert.match(svg,/♭/);
+ assert.match(svg,/Pitch and fingering alignment only/);
+});
