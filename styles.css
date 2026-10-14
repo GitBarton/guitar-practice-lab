@@ -143,3 +143,12 @@ body[data-theme="light"]{color-scheme:light;--bg:#f2f5f7;--side:#fff;--panel:#ff
  .target-tone-display svg .on-note,
  .target-tone-display svg circle[stroke="#fff"]{animation:none}
 }
+
+/* Personal repertoire song creator, accessible at phone and desktop sizes. */
+.manual-song-creator{padding:20px 22px}
+.manual-song-creator .form-row{flex-wrap:wrap;gap:12px}
+.manual-song-creator .form-group{min-width:175px;flex:1 1 180px}
+.manual-song-creator textarea{width:100%;resize:vertical}
+.manual-song-creator .card-header{flex-wrap:wrap;gap:10px}
+.song-item .song-title .badge{margin-left:8px;font-size:10px}
+@media(max-width:620px){.manual-song-creator{padding:14px}.manual-song-creator .form-group{min-width:0;flex-basis:100%}}
