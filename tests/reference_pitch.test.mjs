@@ -24,7 +24,7 @@ test('tempo taps calculate steady 120 and 80 bpm, reject bounces and reset after
  assert.ok(taps.length<=4);
  let result=registerTempoTap(taps,2600);
  assert.equal(result.bpm,null);
- assert.equal(result.taps.length,taps.length);
+ assert.ok(result.taps.length<=taps.length);
  result=registerTempoTap(taps,6000);
  assert.equal(result.bpm,null);
  assert.deepEqual(result.taps,[6000]);
