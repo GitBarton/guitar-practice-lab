@@ -12,6 +12,7 @@ import {referencePentatonicBox,referencePentatonicSkip,referenceDominant7} from 
 import {completeSongLibrary,manualSongs,newCustomSong,SONG_METERS,CUSTOM_SONG_KIND} from './manual-songs.js';
 import {buildTwoFiveOne,clampHarmonyTempo} from './harmony.js';
 import {ChordBacking} from './backing-audio.js';
+import {coachTargets,coachStageDescription} from './practice-coach.js';
 import {loadState,saveState,addRecord,uid,weeklyReport,downloadText,exportCsv,importedSnapshot,validRatingPercent,isHighQualityDrill,ratingDisplay,CloudSync} from './storage.js';
 const state=loadState();
 // Public URL/key defaults survive browser-site-data deletion. The private auth session does not.
@@ -27,7 +28,8 @@ const referencePitch=new ReferencePitchPlayer();
 let selectedHomePitch=45,homeTempoTaps=[];
 const harmonySettings=Object.assign({key:'C',mode:'major',tempo:72,barsPerChord:2,volume:.7,reverb:.42,click:false},state.settings.harmony||{});
 let harmonyPosition=null,harmonyStarted=0,harmonyElapsed=0;
-const harmonyBacking=new ChordBacking(position=>{harmonyPosition=position;updateHarmonyUI();});
+let drillBackingOwner=false,drillBackingMode='major';
+const harmonyBacking=new ChordBacking(position=>{harmonyPosition=position;updateHarmonyUI();updateDrillBackingUI();});
 let showRating=false,diagramStep=-1,ratingPercent=80,cloudMessage='Local only · records saved in this browser',cloudKind='info';let toastTimeout=0;
 const $=id=>document.getElementById(id);
 const safe=(s)=>e(s??'');
@@ -57,7 +59,7 @@ function shell(content){const r=route(),active=['today','practice','songs','harm
 }
 function render(){document.body.dataset.theme=state.settings.theme;const r=route();if(r.page!=='today')referencePitch.stop();let html='';
  switch(r.page){case 'today':html=renderToday();break;case 'practice':html=renderPractice();break;case 'drills':html=renderDrills();break;case 'drill':html=renderDrillDetail(r.id);break;case 'songs':html=renderSongs();break;case 'harmony':html=renderHarmony();break;case 'modes':html=renderModesLab();break;case 'vocabulary':html=renderVocabularyLab();break;case 'song':html=renderSongDetail(r.id);break;case 'references':html=renderReferences();break;case 'reference':html=renderReferenceDetail(r.id);break;case 'progress':html=renderProgress();break;case 'releases':html=renderReleases();break;case 'settings':html=renderSettings();break;default:html=renderToday();}
- $('app').innerHTML=shell(html);updateClock();updateSongTrackUI();if(r.page==='drills')filterDrills();}
+ $('app').innerHTML=shell(html);updateClock();updateSongTrackUI();updateDrillBackingUI();if(r.page==='drills')filterDrills();}
 function queueOverview(s){return `<div class="list">${s.entries.map((entry,i)=>{const d=DRILL_BY_ID[entry.id];return `<div class="step-row ${entry.done?'done':''}"><div class="step-n">${entry.done?'✓':i+1}</div><div class="step-info"><div class="step-name">${safe(d?.title||'Song practice')}</div><div class="step-min">${safe(d?.category?categoryTitle(d.category):'Repertoire')} · ${entry.minutes} min</div></div><span class="small muted">${entry.minutes}:00</span></div>`;}).join('')}</div>`;}
 function renderHomeMusicTools(){
  const selected=PITCH_CHOICES.find(p=>p.midi===selectedHomePitch)||PITCH_CHOICES[5];
@@ -109,6 +111,7 @@ function referencePattern(d,key){
  return null;
 }
 function drillDiagramNotes(d,key,stage){
+ if(stage?.exampleKind?.startsWith('coach-'))return coachTargets(stage.exampleKind,key);
  const study=referenceStudyNotes(d?.id,key);if(study)return study;
  return referencePattern(d,key)?.notes||buildExample(stage?.exampleKind||d.kind,key,d.quality||'maj7',d.octaves||2,state.settings.position);
 }
@@ -148,11 +151,59 @@ function updateClock(){const a=state.active,clock=$('practice-clock'),bar=$('tim
  }
 }
 function currentDrill(){const a=state.active;return a?.entries?.[a.position]||null;}
+function renderDrillCoach(d,key,stage){
+ if(!stage?.exampleKind?.startsWith('coach-'))return '';
+ const lesson=coachStageDescription(stage.exampleKind,key);
+ const plan=buildTwoFiveOne(key,drillBackingMode);
+ const cards=plan.chords.map((chord,i)=>`<div class="coach-chord" data-coach-chord="${i}"><span class="eyebrow">${safe(chord.role)}</span><strong>${safe(chord.label)}</strong></div>`).join('');
+ const targets=lesson.notes.map((note,i)=>`<span class="coach-note"><span class="micro muted">${safe(note.chord)}</span><strong>${safe(note.name)} · ${safe(note.interval)}</strong></span>`).join('');
+ return `<section class="card drill-coach" aria-label="Changing target tones and piano chord support">
+  <div class="card-header"><div><div class="eyebrow">Interactive harmonic roadmap · ${safe(key)} major</div><h3>Hear → Aim → Resolve</h3></div><button type="button" class="btn small" data-action="coach-next-key">Next key ↻</button></div>
+  <p class="coach-lesson-heading">${safe(lesson.heading)}</p>
+  <div class="coach-targets" aria-label="Notes for this stage">${targets}</div>
+  <p class="micro muted">Each target is a real guitar pitch. The map teaches chord function, not a mandatory finger position.</p>
+  <div class="coach-chords" role="group" aria-label="Accompanying chord progression">${cards}</div>
+  <div class="coach-controls"><button type="button" class="btn primary" data-action="drill-chords-toggle" id="drill-chords-toggle-label">${drillBackingOwner&&harmonyBacking.playing?'Stop piano chords':'Play piano chords'}</button>
+   <span class="micro muted">Shared ii–V–I audio engine · one chord/bar · pulse included</span></div>
+  <p class="micro muted" aria-live="polite" id="drill-chord-status">Press Play to hear changing chords. No microphone or recordings.</p>
+ </section>`;
+}
+function updateDrillBackingUI(){
+ const status=$('drill-chord-status'),button=$('drill-chords-toggle-label');
+ if(!status)return;
+ const active=drillBackingOwner&&harmonyBacking.playing&&harmonyPosition;
+ status.textContent=active?'Playing '+harmonyPosition.chord.label+' · bar '+harmonyPosition.barNumber:
+  'Stopped. Press Play to hear changing chords.';
+ if(button)button.textContent=drillBackingOwner&&harmonyBacking.playing?'Stop piano chords':'Play piano chords';
+ document.querySelectorAll('[data-coach-chord]').forEach(element=>element.classList.toggle('current',Boolean(active)&&Number(element.dataset.coachChord)===harmonyPosition.chordIndex));
+}
+async function toggleDrillBacking(){
+ if(route().page!=='practice'||!state.active||!DRILL_BY_ID[currentDrill()?.id])return;
+ if(drillBackingOwner&&harmonyBacking.playing){stopHarmonyPlayback();return;}
+ stopHarmonyPlayback();metronome.stop();songTrackPlayer.pause();referencePitch.stop();
+ try{
+  const plan=buildTwoFiveOne(state.active.key,'major');
+  await harmonyBacking.start(plan,{
+   tempo:Math.min(180,Math.max(40,state.settings.defaultBpm)),
+   barsPerChord:1,volume:harmonySettings.volume??.65,
+   reverb:harmonySettings.reverb??.42,click:true
+  });
+  drillBackingOwner=true;updateDrillBackingUI();
+ }catch(error){drillBackingOwner=false;showToast('Piano accompaniment unavailable: '+error.message);}
+}
+function nextDrillCoachKey(){
+ if(!state.active)return;
+ stopHarmonyPlayback();
+ const current=KEYS.indexOf(state.active.key);
+ state.active.key=KEYS[(current+1+KEYS.length)%KEYS.length];
+ diagramStep=-1;saveState(state);render();
+}
 function renderPractice(){if(!state.active)return `${pageHeader('Practice','Active workspace','Start a session to display your musical drills and timer.')}
  <div class="card empty">No active session. Build your practice plan on Today, or open a single drill from the library.<div class="buttons" style="justify-content:center;margin-top:16px"><a href="#today" class="btn primary">Choose a session</a><a href="#drills" class="btn">Browse drills</a></div></div>`;
  const a=state.active,entry=currentDrill();if(!entry)return renderEndSession();const d=DRILL_BY_ID[entry.id],isSong=entry.id==='song',song=allSongs().find(s=>s.id===a.songId)||SONGS[0];const time=Math.max(0,Math.ceil(entry.minutes*60-clockMs()/1000));const stageIndex=d?clampedStageIndex(d,entry.stageIndex):0,stage=d?currentStage(d,stageIndex):null;const isChords=d?.kind==='chords',isMusical=['ii-v-i','enclosure','approach'].includes(d?.kind);
  const notes=d?drillDiagramNotes(d,a.key,stage):[];
  const diagram=!isSong&&!isChords&&!notes.length?`<div class="alert">This exact range does not fit a 22-fret standard-tuned guitar in ${safe(a.key)}. Choose a different key or use a two-octave drill.</div>`:isSong?`<div class="callout"><strong>${safe(song.title)}</strong><p>${safe(song.focus)}</p><p>${safe(song.notes)}</p></div>${renderSongTrackPanel(song.id)}`:isChords?chordBlocks(a.key):`${progressSvg(notes,d?.id==='ear-guide'||d?.id==='jazz-approach')}<div class="color-legend" style="margin-top:10px"><span><span class="dot root"></span>Root/first note</span><span><span class="dot"></span>Chord tone</span><span><span class="dot active"></span>Selected note</span></div>`;
+ const coachPanel=d?renderDrillCoach(d,a.key,stage):'';
  const previewTime=`<div class="control-panel"><div style="flex:1;min-width:120px"><div class="eyebrow">Tempo</div><div class="tempo"><span id="current-bpm">${state.settings.defaultBpm}</span><span class="muted" style="font-size:14px"> BPM</span></div></div><div style="text-align:right"><div class="eyebrow">Remaining</div><div class="timer" id="practice-clock">${formatSeconds(time)}</div></div></div><div class="meter" style="margin:13px 0 18px"><div id="time-bar" style="width:${Math.min(100,clockMs()/(entry.minutes*600)*100)}%"></div></div>
  <p id="timer-finished" role="status" class="timer-finished" ${a.timerNotifiedFor===a.position?'':'hidden'}>Time's up. Finish and rate this exercise when ready.</p>
  <div class="buttons">${btn('tempo-down',`${ic('minus')} 5 BPM`)}${btn('toggle-timer',`<span id="timer-running">${a.startedAt?'Pause timer':'Start timer'}</span>`,'primary')}${btn('tempo-up',`${ic('plus')} 5 BPM`)}${btn('metro-toggle',`${ic('headphones')} <span id="metro-label">${metronome.playing?'Stop click':'Metronome'}</span>`)} </div><div class="form-row" style="margin-top:14px"><div class="form-group"><label>Subdivision</label><select data-setting="subdivision"><option value="quarter" ${state.settings.subdivision==='quarter'?'selected':''}>Quarter-note pulse</option><option value="swing" ${state.settings.subdivision==='swing'?'selected':''}>Swung eighths</option><option value="triplet" ${state.settings.subdivision==='triplet'?'selected':''}>Triplets</option></select></div><div class="form-group"><label>Meter</label><select data-setting="meter"><option value="4/4" ${state.settings.meter==='4/4'?'selected':''}>4/4</option><option value="6/8" ${state.settings.meter==='6/8'?'selected':''}>6/8 (2 dotted-quarter pulses)</option></select></div></div>`;
@@ -165,7 +216,7 @@ function renderPractice(){if(!state.active)return `${pageHeader('Practice','Acti
  const noteControls=isChords||isSong?'':`<div class="buttons" style="margin-top:10px">${btn('step-prev',`${ic('minus')} Previous note`,'small')}${tag(diagramStep>=0?`Note ${diagramStep+1} of ${notes.length}`:'All notes')}${btn('step-next',`Next note ${ic('arrow')}`,'small')}<div style="flex:1"></div><div class="segmented"><button class="${state.settings.diagram==='tab'?'active':''}" data-action="diagram-tab">Staff + TAB</button><button class="${state.settings.diagram==='fretboard'?'active':''}" data-action="diagram-fretboard">Fretboard</button></div></div><div class="buttons" style="margin-top:8px">${btn('labels-note',state.settings.labels==='note'?'✓ Notes':'Notes','small')}${btn('labels-interval',state.settings.labels==='interval'?'✓ Intervals':'Intervals','small')}${btn('labels-hidden',state.settings.labels==='hidden'?'✓ Labels hidden':'Hide labels','small')}</div>`;
  const refs=(d?.reference||[]).map(id=>`<a href="#reference/${id}">${safe(REFERENCE_BY_ID[id]?.title||id)}</a>`).join('');
  return `${pageHeader('Active session',stepLabel,`Day ${a.dayNumber+1} · ${a.key.replace('b','♭')} · ${a.mode==='technique'?'Technique':'Repertoire'} · ${entry.minutes} min`,tag((a.position+1)+' / '+a.entries.length,true))}
- <div class="practice-layout"><div class="practice-main"><div class="card practice-diagram"><div class="card-header"><div><div class="eyebrow">${safe(isSong?'Performance rehearsal':categoryTitle(d.category))}</div><h2 style="margin-top:8px">${safe(isSong?song.focus:d.summary)}</h2></div>${ic('target')}</div>${isMusical?`${progressionPills(a.key)}<div style="height:12px"></div>`:''}${diagram}${referencePanel}${positionControl}${noteControls}
+ <div class="practice-layout"><div class="practice-main"><div class="card practice-diagram"><div class="card-header"><div><div class="eyebrow">${safe(isSong?'Performance rehearsal':categoryTitle(d.category))}</div><h2 style="margin-top:8px">${safe(isSong?song.focus:d.summary)}</h2></div>${ic('target')}</div>${isMusical?`${progressionPills(a.key)}<div style="height:12px"></div>`:''}${coachPanel}${diagram}${referencePanel}${positionControl}${noteControls}
  <div class="practice-instructions">${stageBar}<p class="practice-shortcuts small muted" aria-label="Practice keyboard shortcuts"><kbd>Space</kbd> Timer pause/resume <span aria-hidden="true">·</span> <kbd>↑</kbd>/<kbd>↓</kbd> BPM ±5${stage?' <span aria-hidden="true">·</span> <kbd>Enter</kbd> Next stage':''}</p><div class="card-header"><h3>How to practise</h3>${ic('book')}</div><p class="practice-cue">${safe(guidance)}</p>
  <ol class="instruction-list instruction-stages">${instruct.map((line,i)=>`<li><strong>${['Prepare','Play','Listen / refine'][i]||'Refine'}.</strong> ${safe(line)}</li>`).join('')}</ol>
  ${refs?`<div class="chip-links practice-references">${refs}</div>`:''}
@@ -304,8 +355,9 @@ async function toggleHarmonyPlayback(){
  }catch(error){showToast('Chord playback unavailable: '+error.message);}
 }
 function stopHarmonyPlayback(){
+ drillBackingOwner=false;
  if(harmonyStarted){harmonyElapsed+=Date.now()-harmonyStarted;harmonyStarted=0;}
- harmonyBacking.stop();updateHarmonyUI();
+ harmonyBacking.stop();updateHarmonyUI();updateDrillBackingUI();
 }
 function harmonyTempoChange(delta){
  harmonySettings.tempo=clampHarmonyTempo(Number(harmonySettings.tempo)+delta);
@@ -465,6 +517,7 @@ async function armTimerAudio(){try{const Audio=window.AudioContext||window.webki
 function playTimerChime(){try{if(!timerAudioCtx||timerAudioCtx.state!=='running')return;const base=timerAudioCtx.currentTime+.015;
  [880,1100,1320].forEach((frequency,i)=>{const at=base+i*.23,osc=timerAudioCtx.createOscillator(),gain=timerAudioCtx.createGain();osc.type='sine';osc.frequency.setValueAtTime(frequency,at);gain.gain.setValueAtTime(.0001,at);gain.gain.exponentialRampToValueAtTime(.17,at+.018);gain.gain.exponentialRampToValueAtTime(.0001,at+.18);osc.connect(gain).connect(timerAudioCtx.destination);osc.start(at);osc.stop(at+.20);});}catch(e){console.info('Timer chime unavailable',e);}}
 function changeTempo(n){const bpm=Math.min(240,Math.max(30,Number(state.settings.defaultBpm)+n));state.settings.defaultBpm=bpm;saveState(state);const value=$('current-bpm');if(value)value.textContent=bpm;
+ if(drillBackingOwner)harmonyBacking.setTempo(Math.min(180,Math.max(40,bpm)));
  // The audio scheduler reads state.settings.defaultBpm on every tick, so it
  // changes tempo naturally without stopping the click or resetting its beat.
  render();}
@@ -480,7 +533,7 @@ function startSession(isFree=false,drillId=null,songId=null){if(state.active){se
  state.active=a;saveState(state);showRating=false;diagramStep=-1;setRoute('practice');}
 function finishCurrent(percent,issue){
  if(!Number.isInteger(percent)||percent<0||percent>100||percent%10!==0){showToast('Choose a quality score in 10% steps.');return;}
-const a=state.active,entry=currentDrill();if(!entry)return;pauseTimer();metronome.stop();const drillId=entry.id==='song'?`song:${a.songId}`:entry.id;
+const a=state.active,entry=currentDrill();if(!entry)return;pauseTimer();metronome.stop();stopHarmonyPlayback();const drillId=entry.id==='song'?`song:${a.songId}`:entry.id;
  const appFeedback=$('app-feedback-text')?.value?.trim()?.slice(0,1200)||'';
  const appFeedbackType=appFeedback?$('app-feedback-type')?.value||'general':'';
  const publicFeedbackConsent=Boolean(appFeedback&&$('app-feedback-public')?.checked);
@@ -534,6 +587,8 @@ function movePracticeStage(delta){
  saveState(state);render();
 }
 const actions={
+ 'drill-chords-toggle':toggleDrillBacking,
+ 'coach-next-key':nextDrillCoachKey,
  'mode-positions-next':()=>{const idx=CAGED_REGIONS.findIndex(s=>s.id===modalPosition);modalPosition=CAGED_REGIONS[(idx+1)%CAGED_REGIONS.length].id;render();},
  'mode-back':()=>{modalStep=Math.max(-1,modalStep-1);render();},
  'mode-next':()=>{const n=scaleFor(modalId,modalKey).intervals.length;modalStep=(modalStep+1)%n;render();},
@@ -565,7 +620,7 @@ const actions={
  'track-b':()=>{if(!songTrackPlayer.markB())showToast('First set loop A, then move forward at least one second.');},
  'track-clear-loop':()=>songTrackPlayer.clearAB(),
  'start-session':()=>startSession(), 'resume-session':()=>setRoute('practice'),'stage-prev':()=>movePracticeStage(-1),'stage-next':()=>movePracticeStage(1),'toggle-timer':toggleTimer,'tempo-up':()=>changeTempo(5),'tempo-down':()=>changeTempo(-5),
- 'metro-toggle':async()=>{await metronome.toggle();const label=$('metro-label');if(label)label.textContent=metronome.playing?'Stop click':'Metronome';},
+ 'metro-toggle':async()=>{if(drillBackingOwner)stopHarmonyPlayback();await metronome.toggle();const label=$('metro-label');if(label)label.textContent=metronome.playing?'Stop click':'Metronome';},
  'rating-open':()=>{pauseTimer();ratingPercent=80;showRating=true;render();},'rating-cancel':()=>{showRating=false;render();},
  'rating-decrement':()=>setRatingPercent(ratingPercent-10),'rating-increment':()=>setRatingPercent(ratingPercent+10),
  'rating-save':()=>finishCurrent(ratingPercent,$('drill-issue')?.value),
@@ -692,7 +747,7 @@ function filterDrills(){
  if(result)result.textContent=count+' of '+DRILLS.length+' drills shown'+(cat==='all'?'':' · '+categoryTitle(cat));
  const empty=$('drill-filter-empty');if(empty)empty.classList.toggle('hide',count!==0);
 }
-window.addEventListener('hashchange',()=>{const r=route();if(r.page!=='harmony')stopHarmonyPlayback();
+window.addEventListener('hashchange',()=>{const r=route();if(r.page!=='harmony'||drillBackingOwner)stopHarmonyPlayback();
  const stillRelevant=(r.page==='song'&&r.id===songTrackPlayer.songId)||(r.page==='practice'&&state.active?.entries?.[state.active?.position]?.id==='song'&&state.active?.songId===songTrackPlayer.songId);
  if(!stillRelevant)songTrackPlayer.pause();
  showRating=false;diagramStep=-1;render();});
