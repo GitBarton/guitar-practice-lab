@@ -31,9 +31,11 @@ export function rhythmFigure(kind,key='C'){
  let index=0;
  const notes=[];
  for(const degree of FIGURES[kind]){
-  const chord=chords[degree],root=48+chord.rootPc;
+  const chord=chords[degree],fifthInterval=chord.quality==='m7♭5'?6:7;
+  let root=48+chord.rootPc;
+  // A low Cø7 requires a G-string Gb just below open G: take the next octave.
+  if(root+fifthInterval<OPENS[2])root+=12;
   const third=root+12+(TRIADS_QUALITY[chord.quality]??4);
-  const fifthInterval=chord.quality==='m7♭5'?6:7;
   const steps=[
    {midi:root,string:4,interval:'1'},      // A string
    {midi:root+fifthInterval,string:2,interval:fifthInterval===6?'♭5':'5'},    // G string; D is silent
