@@ -146,3 +146,55 @@ test('ear and approach exercises now have explicit changing target stages',()=>{
   assert.ok(d.stages.every(st=>buildExample(st.exampleKind,'Bb').length>0));
  }
 });
+
+test('extended jazz arpeggio qualities are theoretically distinct and transposable',()=>{
+ const expected={
+  '6':[0,4,7,9],m6:[0,3,7,9],mMaj7:[0,3,7,11],
+  '7sus4':[0,5,7,10],'7b5':[0,4,6,10],
+  '7#5':[0,4,8,10],'maj7#5':[0,4,8,11]
+ };
+ const ids=['arp-6','arp-m6','arp-mMaj7','arp-7sus4','arp-7b5','arp-7sharp5','arp-maj7sharp5'];
+ for(let index=0;index<ids.length;index++){
+  const drill=DRILL_BY_ID[ids[index]];
+  assert.ok(drill,ids[index]+' should be in Drill library');
+  assert.deepEqual(INTERVALS[drill.quality],expected[drill.quality]);
+  assert.equal(drill.octaves??2,2);
+  for(const key of KEYS)for(const position of ['low','mid','high']){
+   const notes=buildNotePath(key,drill.quality,2,position);
+   assert.equal(notes.length,9,key+' '+drill.quality+' '+position);
+   const root=notes[0].midi;
+   assert.deepEqual(notes.map(n=>n.midi-root),[...expected[drill.quality],...expected[drill.quality].map(x=>x+12),24]);
+   assert.ok(notes.every(n=>n.fret>=0&&n.fret<=22&&n.midi>=40&&n.midi<=86));
+  }
+ }
+});
+test('diminished triad and fully diminished seventh are separate audible sets',()=>{
+ const ctriad=buildNotePath('C','dim',2),cseventh=buildNotePath('C','dim7',2);
+ assert.deepEqual(INTERVALS.dim,[0,3,6]);
+ assert.deepEqual(INTERVALS.dim7,[0,3,6,9]);
+ assert.deepEqual(ctriad.slice(0,3).map(n=>n.pc),[0,3,6]);
+ assert.deepEqual(cseventh.slice(0,4).map(n=>n.pc),[0,3,6,9]);
+ assert.equal(cseventh[3].interval,'𝄫7');
+ assert.equal(buildNotePath('C','m6',2)[3].interval,'6');
+ assert.equal(buildNotePath('C','7b5',2)[2].interval,'♭5');
+ const dim=DRILL_BY_ID['arp-dim'];
+ assert.equal(stageCount(dim),2);
+ assert.equal(currentStage(dim,1).exampleKind,'arpeggio-dim7');
+ assert.deepEqual(buildExample('arpeggio-dim7','C','dim',2).map(x=>x.midi),cseventh.map(x=>x.midi));
+ assert.match(dim.summary,/THREE|three-note/);
+ assert.match(dim.instructions.join(' '),/B𝄫/);
+});
+test('all 7 new arpeggio families appear in automatic multi-day practice rotation',()=>{
+ const proposed=['arp-6','arp-m6','arp-mMaj7','arp-7sus4','arp-7b5','arp-7sharp5','arp-maj7sharp5'];
+ for(const id of proposed){
+  assert.ok(DRILL_BY_ID[id]);
+  assert.ok(Array.from({length:80},(_,day)=>makeSession(day,'soloing')).some(plan=>plan.entries.some(e=>e.id===id)),
+   id+' never scheduled');
+ }
+ for(const mode of ['technique','repertoire','soloing','mixed']){
+  for(const duration of [30,45,60,90,120]){
+   const p=makeSession(16,mode,'autumn-leaves',duration);
+   assert.equal(p.entries.reduce((n,x)=>n+x.minutes,0),duration);
+  }
+ }
+});
