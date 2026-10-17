@@ -248,6 +248,23 @@ test('repertoire page provides validated manual-song form and includes it throug
  assert.match(manual,/CUSTOM_SONG_KIND='custom-song'/);
 });
 
+test('coached jazz drills have evolving visual targets and a single shared piano engine',()=>{
+ assert.match(app,/import \{coachTargets,coachStageDescription\} from '\.\/practice-coach\.js'/);
+ assert.match(app,/function renderDrillCoach\(d,key,stage\)/);
+ assert.match(app,/data-coach-chord/);
+ assert.match(app,/coach-next-key/);
+ assert.match(app,/drill-chords-toggle/);
+ assert.match(app,/function toggleDrillBacking\(\)/);
+ assert.match(app,/await harmonyBacking\.start\(plan/);
+ assert.match(app,/if\(drillBackingOwner\)harmonyBacking\.setTempo/);
+ assert.match(app,/if\(drillBackingOwner\)stopHarmonyPlayback\(\)/);
+ assert.match(app,/pauseTimer\(\);metronome\.stop\(\);stopHarmonyPlayback\(\)/);
+ assert.match(app,/function updateDrillBackingUI\(\)/);
+ assert.match(sw,/'\.\/practice-coach\.js'/);
+ assert.match(css,/\.coach-chord\.current/);
+ assert.match(css,/\.coach-targets/);
+});
+
 test('rhythm drills show changing chord names, verified shell shapes and a keyboard metronome toggle',()=>{
  assert.match(app,/import \{rhythmFigure,rhythmChordShapes,rhythmProgressionLabels\} from '\.\/rhythm-variations\.js'/);
  assert.match(app,/function rhythmChordBlocks\(d,key,stage\)/);

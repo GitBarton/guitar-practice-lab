@@ -5,6 +5,6 @@
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "check": "node --check app.js && node --check music.js && node --check data.js && node --check storage.js && node --check song-audio.js && node --check harmony.js && node --check backing-audio.js && node --check theory-lab.js && node --check vocabulary.js && node --check reference-patterns.js && node --check mode-positions.js && node --check modal-harmony.js && node --check manual-songs.js && node --check reference-pitch.js && node --check staff-notation.js && node --check reference-studies.js && node --check rhythm-variations.js"
+    "check": "node --check app.js && node --check music.js && node --check data.js && node --check storage.js && node --check song-audio.js && node --check harmony.js && node --check backing-audio.js && node --check theory-lab.js && node --check vocabulary.js && node --check reference-patterns.js && node --check mode-positions.js && node --check modal-harmony.js && node --check manual-songs.js && node --check reference-pitch.js && node --check staff-notation.js && node --check reference-studies.js && node --check practice-coach.js && node --check rhythm-variations.js"
   }
 }
