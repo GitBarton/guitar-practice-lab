@@ -247,3 +247,14 @@ test('repertoire page provides validated manual-song form and includes it throug
  assert.match(sw,/'\.\/manual-songs\.js'/);
  assert.match(manual,/CUSTOM_SONG_KIND='custom-song'/);
 });
+
+test('Barry Harris sixth-diminished drills show tonic and diminished chord families',()=>{
+ assert.match(app,/import \{sixthDiminished,sixthDiminishedNotes\} from '\.\/barry-sixth\.js'/);
+ assert.match(app,/function renderSixthDiminishedContext\(d,key,stage\)/);
+ assert.match(app,/jazz-sixth-diminished-/);
+ assert.match(app,/stage\?\.exampleKind\?\.startsWith\('barry6-'\)/);
+ assert.match(app,/renderSixthDiminishedContext\(d,a\.key,stage\)/);
+ assert.match(app,/renderSixthDiminishedContext\(d,key,currentStage\(d\)\)/);
+ assert.match(css,/\.sixth-dim-chords/);
+ assert.match(sw,/'\.\/barry-sixth\.js'/);
+});
