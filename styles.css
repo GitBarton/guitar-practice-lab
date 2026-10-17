@@ -277,3 +277,15 @@ body[data-theme="light"] .hero{box-shadow:0 17px 40px #60413a25}
 /* Score + TAB unified visual; keep staff and TAB together on narrow displays. */
 .score-viewport{overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-gutter:stable;min-height:0;padding:12px 14px}.score-viewport svg.guitar-staff-tab{max-width:none;width:max-content;min-width:100%;height:auto}.guitar-staff-tab .score-note[role="button"]{cursor:pointer}.guitar-staff-tab .score-note[role="button"]:focus-visible{outline:none;filter:drop-shadow(0 0 5px var(--teal))}.guitar-staff-tab .score-note.selected{filter:drop-shadow(0 0 3px var(--teal))}
 @media(max-width:770px){.score-viewport{padding:8px;scrollbar-gutter:auto}}
+
+/* Sixth-diminished color families: show tonic-sixth and passing diminished distinctly. */
+.sixth-dim-explainer{margin:12px 0 18px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--panel2)}
+.sixth-dim-chords{display:grid;grid-template-columns:minmax(0,1fr) 26px minmax(0,1fr);gap:8px;align-items:center;margin:11px 0}
+.sixth-dim-chords>div:not(.sixth-dim-join){padding:12px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
+.sixth-dim-chords strong{font-size:18px}
+.sixth-dim-chords p{font-size:12px;line-height:1.5;margin:6px 0 0;color:var(--muted)}
+.sixth-dim-join{text-align:center;font-size:20px;color:var(--teal)}
+.sixth-dim-degrees{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.sixth-dim-degrees .pill{display:inline-flex;flex-direction:column;gap:3px;align-items:center;padding:8px 11px}
+.sixth-dim-degrees .pill small{font-size:10px;opacity:.7}
+@media(max-width:470px){.sixth-dim-explainer{padding:10px}.sixth-dim-chords{grid-template-columns:minmax(0,1fr)}.sixth-dim-join{font-size:14px}}
