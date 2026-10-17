@@ -6,6 +6,7 @@ import {ARTIST_PROFILES,VOCAB_STUDIES,vocabularyNotes} from './vocabulary.js';
 import {renderStaffTabSvg} from './staff-notation.js';
 import {referenceStudyNotes} from './reference-studies.js';
 import {SongTrackPlayer,songClock} from './song-audio.js';
+import {rhythmFigure,rhythmChordShapes,rhythmProgressionLabels} from './rhythm-variations.js';
 import {MODE_FAMILIES,MODE_DEFINITIONS,scaleFor,diatonicSevenths,scaleTabTargets} from './theory-lab.js';
 import {OPEN_STRING_PITCHES,PITCH_CHOICES,pitchFrequency,registerTempoTap,ReferencePitchPlayer} from './reference-pitch.js';
 import {referencePentatonicBox,referencePentatonicSkip,referenceDominant7} from './reference-patterns.js';
@@ -109,6 +110,7 @@ function referencePattern(d,key){
  return null;
 }
 function drillDiagramNotes(d,key,stage){
+ if(stage?.exampleKind?.startsWith('rhythm-153-'))return rhythmFigure(stage.exampleKind,key);
  const study=referenceStudyNotes(d?.id,key);if(study)return study;
  return referencePattern(d,key)?.notes||buildExample(stage?.exampleKind||d.kind,key,d.quality||'maj7',d.octaves||2,state.settings.position);
 }
@@ -133,6 +135,21 @@ function guitarNotationKey(){
 }
 function renderGuitarStaff(notes,active=-1,interactive=false){return renderStaffTabSvg(notes,guitarNotationKey(),active,interactive?{actionPrefix:'score-focus'}:{});}
 function progressSvg(notes,pulse=false){const focus=pulse&&diagramStep<0?0:diagramStep;return `<div class="diagram-viewport ${pulse?'target-tone-display':''}" id="diagram-container">${state.settings.diagram==='fretboard'?renderFretboardSvg(notes,focus,state.settings.labels):renderGuitarStaff(notes,focus)}</div>`;}
+function rhythmChordBlocks(d,key,stage){
+ if(d?.id!=='muting-chord'||!stage?.exampleKind?.startsWith('rhythm-chords-'))return chordBlocks(key);
+ const chords=rhythmChordShapes(stage.exampleKind,key);
+ return `<div class="rhythm-chord-grid" aria-label="Transposed jazz shell voicings">${chords.map(ch=>`<div class="rhythm-chord-card"><div class="micro muted">${safe(ch.label)}</div><h3>${safe(ch.name)}</h3>
+  <div class="diagram-viewport" style="min-height:0;padding:0">${chordDiagramSvg(ch)}</div>
+  <p class="micro muted">Shell: no fifth · mute X strings</p></div>`).join('')}</div>`;
+}
+function rhythmStageLine(stage,key){
+ if(!stage?.exampleKind?.startsWith('rhythm-'))return '';
+ const chords=rhythmProgressionLabels(stage.exampleKind,key);
+ return `<div class="rhythm-progress" aria-label="Changing chords in this exercise">
+  <strong>Chord route:</strong> ${chords.map(name=>`<span class="pill">${safe(name)}</span>`).join('')}
+  <span class="micro muted">${stage.exampleKind.startsWith('rhythm-153-')?'Pick 1 → 5 → 3 (or ♭3) per chord · A → G → B string':'Strum only shown grips; silence all other strings'}</span>
+ </div>`;
+}
 function chordBlocks(key){return `<div class="grid-2">${shellShapes(key).map(c=>`<div style="background:var(--panel2);padding:12px;border-radius:12px;min-width:0"><div class="small muted">${c.label}</div><h3>${safe(c.name)}</h3><div class="diagram-viewport" style="padding:0;min-height:0;border:0">${chordDiagramSvg(c)}</div></div>`).join('')}</div><p class="footnote">These are transposable shell-voicing examples. Some keys use higher positions; choose a comfortable octave and mute each X string.</p>`;}
 function progressionPills(key){return `<div class="buttons">${progressionFor(key).map(p=>`<span class="pill special">${p.role} · ${safe(p.name)}</span>`).join('')}</div>`;}
 function clockMs(){const a=state.active;if(!a)return 0;return Math.max(0,(a.elapsedMs||0)+(a.startedAt?Date.now()-a.startedAt:0));}
@@ -152,10 +169,10 @@ function renderPractice(){if(!state.active)return `${pageHeader('Practice','Acti
  <div class="card empty">No active session. Build your practice plan on Today, or open a single drill from the library.<div class="buttons" style="justify-content:center;margin-top:16px"><a href="#today" class="btn primary">Choose a session</a><a href="#drills" class="btn">Browse drills</a></div></div>`;
  const a=state.active,entry=currentDrill();if(!entry)return renderEndSession();const d=DRILL_BY_ID[entry.id],isSong=entry.id==='song',song=allSongs().find(s=>s.id===a.songId)||SONGS[0];const time=Math.max(0,Math.ceil(entry.minutes*60-clockMs()/1000));const stageIndex=d?clampedStageIndex(d,entry.stageIndex):0,stage=d?currentStage(d,stageIndex):null;const isChords=d?.kind==='chords',isMusical=['ii-v-i','enclosure','approach'].includes(d?.kind);
  const notes=d?drillDiagramNotes(d,a.key,stage):[];
- const diagram=!isSong&&!isChords&&!notes.length?`<div class="alert">This exact range does not fit a 22-fret standard-tuned guitar in ${safe(a.key)}. Choose a different key or use a two-octave drill.</div>`:isSong?`<div class="callout"><strong>${safe(song.title)}</strong><p>${safe(song.focus)}</p><p>${safe(song.notes)}</p></div>${renderSongTrackPanel(song.id)}`:isChords?chordBlocks(a.key):`${progressSvg(notes,d?.id==='ear-guide'||d?.id==='jazz-approach')}<div class="color-legend" style="margin-top:10px"><span><span class="dot root"></span>Root/first note</span><span><span class="dot"></span>Chord tone</span><span><span class="dot active"></span>Selected note</span></div>`;
+ const diagram=!isSong&&!isChords&&!notes.length?`<div class="alert">This exact range does not fit a 22-fret standard-tuned guitar in ${safe(a.key)}. Choose a different key or use a two-octave drill.</div>`:isSong?`<div class="callout"><strong>${safe(song.title)}</strong><p>${safe(song.focus)}</p><p>${safe(song.notes)}</p></div>${renderSongTrackPanel(song.id)}`:isChords?rhythmChordBlocks(d,a.key,stage):`${progressSvg(notes,d?.id==='ear-guide'||d?.id==='jazz-approach')}<div class="color-legend" style="margin-top:10px"><span><span class="dot root"></span>Root/first note</span><span><span class="dot"></span>Chord tone</span><span><span class="dot active"></span>Selected note</span></div>`;
  const previewTime=`<div class="control-panel"><div style="flex:1;min-width:120px"><div class="eyebrow">Tempo</div><div class="tempo"><span id="current-bpm">${state.settings.defaultBpm}</span><span class="muted" style="font-size:14px"> BPM</span></div></div><div style="text-align:right"><div class="eyebrow">Remaining</div><div class="timer" id="practice-clock">${formatSeconds(time)}</div></div></div><div class="meter" style="margin:13px 0 18px"><div id="time-bar" style="width:${Math.min(100,clockMs()/(entry.minutes*600)*100)}%"></div></div>
  <p id="timer-finished" role="status" class="timer-finished" ${a.timerNotifiedFor===a.position?'':'hidden'}>Time's up. Finish and rate this exercise when ready.</p>
- <div class="buttons">${btn('tempo-down',`${ic('minus')} 5 BPM`)}${btn('toggle-timer',`<span id="timer-running">${a.startedAt?'Pause timer':'Start timer'}</span>`,'primary')}${btn('tempo-up',`${ic('plus')} 5 BPM`)}${btn('metro-toggle',`${ic('headphones')} <span id="metro-label">${metronome.playing?'Stop click':'Metronome'}</span>`)} </div><div class="form-row" style="margin-top:14px"><div class="form-group"><label>Subdivision</label><select data-setting="subdivision"><option value="quarter" ${state.settings.subdivision==='quarter'?'selected':''}>Quarter-note pulse</option><option value="swing" ${state.settings.subdivision==='swing'?'selected':''}>Swung eighths</option><option value="triplet" ${state.settings.subdivision==='triplet'?'selected':''}>Triplets</option></select></div><div class="form-group"><label>Meter</label><select data-setting="meter"><option value="4/4" ${state.settings.meter==='4/4'?'selected':''}>4/4</option><option value="6/8" ${state.settings.meter==='6/8'?'selected':''}>6/8 (2 dotted-quarter pulses)</option></select></div></div>`;
+ <div class="buttons">${btn('tempo-down',`${ic('minus')} 5 BPM`)}${btn('toggle-timer',`<span id="timer-running">${a.startedAt?'Pause timer':'Start timer'}</span>`,'primary')}${btn('tempo-up',`${ic('plus')} 5 BPM`)}${btn('metro-toggle',`${ic('headphones')} <span id="metro-label">${metronome.playing?'Stop click':'Metronome'}</span>`)} </div><div class="form-row" style="margin-top:14px"><div class="form-group"><label>Metronome sound</label><select data-setting="metronomeSound"><option value="click" ${(state.settings.metronomeSound||"click")==="click"?"selected":""}>Clear click · louder</option><option value="jazz" ${state.settings.metronomeSound==="jazz"?"selected":""}>Jazz ping · synthetic</option></select></div><div class="form-group"><label>Start click with timer</label><select data-setting="autoMetronome"><option value="off" ${(state.settings.autoMetronome||"off")==="off"?"selected":""}>Off</option><option value="on" ${state.settings.autoMetronome==="on"?"selected":""}>On</option></select></div></div><div class="form-row" style="margin-top:14px"><div class="form-group"><label>Subdivision</label><select data-setting="subdivision"><option value="quarter" ${state.settings.subdivision==='quarter'?'selected':''}>Quarter-note pulse</option><option value="swing" ${state.settings.subdivision==='swing'?'selected':''}>Swung eighths</option><option value="triplet" ${state.settings.subdivision==='triplet'?'selected':''}>Triplets</option></select></div><div class="form-group"><label>Meter</label><select data-setting="meter"><option value="4/4" ${state.settings.meter==='4/4'?'selected':''}>4/4</option><option value="6/8" ${state.settings.meter==='6/8'?'selected':''}>6/8 (2 dotted-quarter pulses)</option></select></div></div>`;
  const stepLabel=isSong?song.title:d.title;
  const guidance=stage?stage.focus:isSong?'Pick a short passage, rehearse it slowly, then compare with your performance tempo.':d.kind==='enclosure'?`Aim for ${enclosureGuide(a.key).target}, the major third of ${enclosureGuide(a.key).dominant}. The approach notes decorate that target.`:d.category==='muting'?'Listen for every unintended string. Silence is part of the exercise.':d.category==='arpeggio'?'Identify the root, third and seventh where present; keep string changes smooth.':d.category==='picking'?'Use a small, relaxed down-up motion. Keep the attack even before raising tempo.':d.category==='jazz'?'Hear each chord change; aim for guide tones on strong beats.':d.category==='ear'?'Sing or imagine the target first; check the result on the guitar.':d.category==='comping'?'Play the rhythm first; keep unused strings quiet and releases deliberate.':'Keep the phrase musical rather than racing through the pattern.';
  const instruct=stage?stage.instructions:isSong?['Select one difficult section, not the entire arrangement.','Play once under tempo, then at performance tempo.','Record what specifically needs work for the next session.']:d.kind==='enclosure'?enclosureInstructions(a.key):d.instructions;
@@ -165,8 +182,8 @@ function renderPractice(){if(!state.active)return `${pageHeader('Practice','Acti
  const noteControls=isChords||isSong?'':`<div class="buttons" style="margin-top:10px">${btn('step-prev',`${ic('minus')} Previous note`,'small')}${tag(diagramStep>=0?`Note ${diagramStep+1} of ${notes.length}`:'All notes')}${btn('step-next',`Next note ${ic('arrow')}`,'small')}<div style="flex:1"></div><div class="segmented"><button class="${state.settings.diagram==='tab'?'active':''}" data-action="diagram-tab">Staff + TAB</button><button class="${state.settings.diagram==='fretboard'?'active':''}" data-action="diagram-fretboard">Fretboard</button></div></div><div class="buttons" style="margin-top:8px">${btn('labels-note',state.settings.labels==='note'?'✓ Notes':'Notes','small')}${btn('labels-interval',state.settings.labels==='interval'?'✓ Intervals':'Intervals','small')}${btn('labels-hidden',state.settings.labels==='hidden'?'✓ Labels hidden':'Hide labels','small')}</div>`;
  const refs=(d?.reference||[]).map(id=>`<a href="#reference/${id}">${safe(REFERENCE_BY_ID[id]?.title||id)}</a>`).join('');
  return `${pageHeader('Active session',stepLabel,`Day ${a.dayNumber+1} · ${a.key.replace('b','♭')} · ${a.mode==='technique'?'Technique':'Repertoire'} · ${entry.minutes} min`,tag((a.position+1)+' / '+a.entries.length,true))}
- <div class="practice-layout"><div class="practice-main"><div class="card practice-diagram"><div class="card-header"><div><div class="eyebrow">${safe(isSong?'Performance rehearsal':categoryTitle(d.category))}</div><h2 style="margin-top:8px">${safe(isSong?song.focus:d.summary)}</h2></div>${ic('target')}</div>${isMusical?`${progressionPills(a.key)}<div style="height:12px"></div>`:''}${diagram}${referencePanel}${positionControl}${noteControls}
- <div class="practice-instructions">${stageBar}<p class="practice-shortcuts small muted" aria-label="Practice keyboard shortcuts"><kbd>Space</kbd> Timer pause/resume <span aria-hidden="true">·</span> <kbd>↑</kbd>/<kbd>↓</kbd> BPM ±5${stage?' <span aria-hidden="true">·</span> <kbd>Enter</kbd> Next stage':''}</p><div class="card-header"><h3>How to practise</h3>${ic('book')}</div><p class="practice-cue">${safe(guidance)}</p>
+ <div class="practice-layout"><div class="practice-main"><div class="card practice-diagram"><div class="card-header"><div><div class="eyebrow">${safe(isSong?'Performance rehearsal':categoryTitle(d.category))}</div><h2 style="margin-top:8px">${safe(isSong?song.focus:d.summary)}</h2></div>${ic('target')}</div>${isMusical?`${progressionPills(a.key)}<div style="height:12px"></div>`:''}${rhythmStageLine(stage,a.key)}${diagram}${referencePanel}${positionControl}${noteControls}
+ <div class="practice-instructions">${stageBar}<p class="practice-shortcuts small muted" aria-label="Practice keyboard shortcuts"><kbd>Space</kbd> Timer pause/resume <span aria-hidden="true">·</span> <kbd>M</kbd> Metronome <span aria-hidden="true">·</span> <kbd>↑</kbd>/<kbd>↓</kbd> BPM ±5${stage?' <span aria-hidden="true">·</span> <kbd>Enter</kbd> Next stage':''}</p><div class="card-header"><h3>How to practise</h3>${ic('book')}</div><p class="practice-cue">${safe(guidance)}</p>
  <ol class="instruction-list instruction-stages">${instruct.map((line,i)=>`<li><strong>${['Prepare','Play','Listen / refine'][i]||'Refine'}.</strong> ${safe(line)}</li>`).join('')}</ol>
  ${refs?`<div class="chip-links practice-references">${refs}</div>`:''}
  ${isSong?`<div class="chip-links practice-references"><a href="#song/${song.id}">Open song profile →</a></div>`:''}
@@ -206,7 +223,7 @@ function renderDrills(){
 function renderDrillDetail(id){const d=DRILL_BY_ID[id];if(!d)return `${pageHeader('Library','Drill not found','Return to the library.')}`;
  const key=todayKey(),instructions=d.kind==='enclosure'?enclosureInstructions(key):d.instructions,notes=drillDiagramNotes(d,key,currentStage(d)),rec=(d.reference||[]).map(ref=>REFERENCE_BY_ID[ref]).filter(Boolean),isChord=d.kind==='chords';
  return `${pageHeader(categoryTitle(d.category),d.title,d.summary,btn(`start-free:${d.id}`,`${ic('play')} practice this drill`,'primary'))}
- <div class="grid-main"><div class="card"><div class="card-header"><h2>Exercise diagram</h2>${tag(key,true)}</div>${referencePatternControls(d,key)}${isChord?chordBlocks(key):!notes.length?`<div class="alert">A full three-octave path is not available in this key on a 22-fret standard-tuned guitar. Try another key or a two-octave arpeggio.</div>`:`<div class="eyebrow">Treble staff + aligned TAB (pitch only)</div><div class="diagram-viewport score-viewport" style="margin-top:10px">${renderGuitarStaff(notes)}</div><div class="eyebrow" style="margin-top:20px">Fretboard</div><div class="diagram-viewport" style="margin-top:10px">${renderFretboardSvg(notes,-1,'note')}</div>`}${d.octaves===3?`<p class="alert">Three-octave lines can reach very high frets in some keys. Reduce the range or change key if your guitar or neck comfort makes this impractical.</p>`:''}<div class="divider"></div><h3>How to practice</h3><ol class="instruction-list">${instructions.map(i=>`<li>${safe(i)}</li>`).join('')}</ol>${stageCount(d)?`<h3>Guided stages</h3><ol class="instruction-list">${d.stages.map(stage=>`<li><strong>${safe(stage.title)}:</strong> ${safe(stage.focus)}</li>`).join('')}</ol>`:''} </div><aside class="card"><h3>References</h3>${rec.map(r=>rect(r.title,r.takeaway,'#reference/'+r.id)).join('')||'<p>No specific reference linked.</p>'}<div class="divider"></div><div class="buttons">${btn(`start-free:${d.id}`,'Start solo practice','primary full')}<a class="btn full ghost" href="#drills">Back to library</a></div></aside></div>`;
+ <div class="grid-main"><div class="card"><div class="card-header"><h2>Exercise diagram</h2>${tag(key,true)}</div>${referencePatternControls(d,key)}${isChord?rhythmChordBlocks(d,key,currentStage(d)):!notes.length?`<div class="alert">A full three-octave path is not available in this key on a 22-fret standard-tuned guitar. Try another key or a two-octave arpeggio.</div>`:`<div class="eyebrow">Treble staff + aligned TAB (pitch only)</div><div class="diagram-viewport score-viewport" style="margin-top:10px">${renderGuitarStaff(notes)}</div><div class="eyebrow" style="margin-top:20px">Fretboard</div><div class="diagram-viewport" style="margin-top:10px">${renderFretboardSvg(notes,-1,'note')}</div>`}${d.octaves===3?`<p class="alert">Three-octave lines can reach very high frets in some keys. Reduce the range or change key if your guitar or neck comfort makes this impractical.</p>`:''}<div class="divider"></div><h3>How to practice</h3><ol class="instruction-list">${instructions.map(i=>`<li>${safe(i)}</li>`).join('')}</ol>${stageCount(d)?`<h3>Guided stages</h3><ol class="instruction-list">${d.stages.map(stage=>`<li><strong>${safe(stage.title)}:</strong> ${safe(stage.focus)}</li>`).join('')}</ol>`:''} </div><aside class="card"><h3>References</h3>${rec.map(r=>rect(r.title,r.takeaway,'#reference/'+r.id)).join('')||'<p>No specific reference linked.</p>'}<div class="divider"></div><div class="buttons">${btn(`start-free:${d.id}`,'Start solo practice','primary full')}<a class="btn full ghost" href="#drills">Back to library</a></div></aside></div>`;
 }
 let modalFamily='melodic',modalKey='C',modalId='altered',modalStep=-1,modalPosition='G';
 function renderModesLab(){
@@ -450,7 +467,18 @@ function renderSettings(){return `${pageHeader('Configuration','Settings & cloud
 class Metronome{
  constructor(){this.playing=false;this.ctx=null;this.handle=null;this.nextBeat=0;this.beat=0;}
  async toggle(){if(this.playing){this.stop();return;}try{const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)throw Error('Web Audio unavailable.');this.ctx=this.ctx||new Audio();await this.ctx.resume();this.playing=true;this.beat=0;this.nextBeat=this.ctx.currentTime+.08;this.handle=setInterval(()=>this.schedule(),25);this.schedule();}catch(err){showToast('Cannot start audio: '+err.message);this.stop();}}
- click(at,accent=false,soft=false){const osc=this.ctx.createOscillator(),gain=this.ctx.createGain();osc.type='sine';osc.frequency.setValueAtTime(accent?1100:soft?610:850,at);gain.gain.setValueAtTime(0.0001,at);gain.gain.exponentialRampToValueAtTime(soft?.10:.22,at+.005);gain.gain.exponentialRampToValueAtTime(.0001,at+.065);osc.connect(gain).connect(this.ctx.destination);osc.start(at);osc.stop(at+.073);}
+ click(at,accent=false,soft=false){
+ const osc=this.ctx.createOscillator(),gain=this.ctx.createGain();
+ const jazz=state.settings.metronomeSound==='jazz';
+ osc.type=jazz?'triangle':'sine';
+ osc.frequency.setValueAtTime(jazz?(accent?1120:soft?670:930):(accent?1100:soft?610:850),at);
+ const peak=jazz?(soft?.06:.12):(soft?.125:.275); // 125% original regular click without clipping
+ const length=jazz?.15:.065;
+ gain.gain.setValueAtTime(.0001,at);
+ gain.gain.exponentialRampToValueAtTime(peak,at+.005);
+ gain.gain.exponentialRampToValueAtTime(.0001,at+length);
+ osc.connect(gain).connect(this.ctx.destination);osc.start(at);osc.stop(at+length+.008);
+}
  schedule(){if(!this.ctx||!this.playing)return;const bpm=Math.max(30,Math.min(240,Number(state.settings.defaultBpm)||70)),sub=state.settings.subdivision,compound=state.settings.meter==='6/8';const duration=60/bpm;let loop=0;
  while(this.nextBeat<this.ctx.currentTime+.16&&loop++<12){const accent=this.beat%(compound?2:4)===0;this.click(this.nextBeat,accent);
   if(sub==='swing'&&!compound)this.click(this.nextBeat+duration*2/3,false,true);
@@ -472,6 +500,7 @@ function pauseTimer(){if(state.active?.startedAt){state.active.elapsedMs=Math.ma
 async function toggleTimer(){const a=state.active;if(!a)return;if(a.startedAt){pauseTimer();}else{
  await armTimerAudio();if(!state.active||state.active!==a)return;
  if(clockMs()>=a.entries[a.position].minutes*60000){a.elapsedMs=0;a.timerNotifiedFor=-1;}
+ if(state.settings.autoMetronome==='on'&&!metronome.playing)await metronome.toggle();
  a.startedAt=Date.now();saveState(state);
  }render();}
 function startSession(isFree=false,drillId=null,songId=null){if(state.active){setRoute('practice');return;}const mode=state.settings.selectedMode,day=countSessions();const a=makeSession(day,mode,state.settings.selectedSong,state.settings.selectedDuration||45);a.isFree=isFree;
@@ -596,6 +625,10 @@ function handlePracticeShortcut(ev){
  }
  if(ev.key==='ArrowUp'||ev.key==='ArrowDown'){
   ev.preventDefault();changeTempo(ev.key==='ArrowUp'?5:-5);return true;
+ }
+ if(ev.key?.toLowerCase()==='m'){
+  if(ev.repeat)return false;
+  ev.preventDefault();void metronome.toggle().then(()=>render());return true;
  }
  if(ev.key==='Enter'){
   if(ev.repeat)return false;
