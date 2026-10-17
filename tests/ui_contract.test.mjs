@@ -264,3 +264,19 @@ test('coached jazz drills have evolving visual targets and a single shared piano
  assert.match(css,/\.coach-chord\.current/);
  assert.match(css,/\.coach-targets/);
 });
+
+test('rhythm drills show changing chord names, verified shell shapes and a keyboard metronome toggle',()=>{
+ assert.match(app,/import \{rhythmFigure,rhythmChordShapes,rhythmProgressionLabels\} from '\.\/rhythm-variations\.js'/);
+ assert.match(app,/function rhythmChordBlocks\(d,key,stage\)/);
+ assert.match(app,/function rhythmStageLine\(stage,key\)/);
+ assert.match(app,/data-setting="metronomeSound"/);
+ assert.match(app,/data-setting="autoMetronome"/);
+ assert.match(app,/if\(ev\.key\?\.toLowerCase\(\)==='m'\)/);
+ assert.match(app,/<kbd>M<\/kbd>/);
+ assert.match(app,/if\(state\.settings\.autoMetronome==='on'&&!metronome\.playing\)/);
+ assert.match(app,/const jazz=state\.settings\.metronomeSound==='jazz'/);
+ assert.match(app,/soft\?\.125:\.275/);
+ assert.match(css,/\.rhythm-chord-grid/);
+ assert.match(css,/\.rhythm-progress/);
+ assert.match(sw,/'\.\/rhythm-variations\.js'/);
+});

@@ -293,3 +293,13 @@ body[data-theme="light"] .hero{box-shadow:0 17px 40px #60413a25}
 .coach-controls{display:flex;gap:11px;align-items:center;flex-wrap:wrap}
 .drill-coach [aria-live]{min-height:1.2em}
 @media(max-width:590px){.drill-coach{padding:11px}.coach-chord strong{font-size:14px}.coach-chord{padding:10px 4px}}
+
+/* Musical rhythm drills: changing chord labels and verified shell grips */
+.rhythm-progress{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin:12px 0;color:var(--text);font-size:12px}
+.rhythm-progress strong{font-weight:750;margin-right:4px}
+.rhythm-progress .pill{font-size:12px}
+.rhythm-chord-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+.rhythm-chord-card{min-width:0;background:var(--panel2);border:1px solid var(--line);padding:11px;border-radius:12px}
+.rhythm-chord-card h3{font-size:17px;margin:5px 0 9px}
+.rhythm-chord-card .diagram-viewport{background:transparent;border:none}
+@media(max-width:560px){.rhythm-chord-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.rhythm-chord-card{padding:8px}}
