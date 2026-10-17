@@ -33,7 +33,7 @@ test('major/minor sixth-diminished notes and chord partitions transpose to all 1
    for(const note of notes){
     assert.equal(note.midi,OPEN[note.string]+note.fret);
     assert.equal(note.pc,note.midi%12);
-    assert.ok(note.name.includes(/[A-G]/.source));
+    assert.match(note.name,/^[A-G]/);
    }
    if(part==='scale')assert.deepEqual(notes.map(n=>n.midi-notes[0].midi),[...offsets,12]);
   }
