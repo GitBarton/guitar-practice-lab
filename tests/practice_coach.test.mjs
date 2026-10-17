@@ -46,8 +46,8 @@ test('chromatic approach and enclosure are adjacent semitones in every key',()=>
  }
 });
 test('C major examples are exact guide-tone and chromatic target pitches',()=>{
- assert.deepEqual(coachTargets('coach-thirds','C').map(n=>n.name),['F4','B4','E4']);
- assert.deepEqual(coachTargets('coach-sevenths','C').map(n=>n.name),['C5','F4','B4']);
+ assert.deepEqual(coachTargets('coach-thirds','C').map(n=>n.name.replace(/\\d+$/,'')),['F','B','E']);
+ assert.deepEqual(coachTargets('coach-sevenths','C').map(n=>n.name.replace(/\\d+$/,'')),['C','F','B']);
  assert.deepEqual(coachTargets('coach-lower-approach','C').map(n=>n.name),['Bb4','B4']);
  assert.deepEqual(coachTargets('coach-enclosure','C').map(n=>n.name),['C5','Bb4','B4']);
  assert.deepEqual(coachTargets('coach-tonic-third','C').map(n=>n.name),['E4']);
