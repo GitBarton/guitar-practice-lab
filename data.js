@@ -165,6 +165,22 @@ export const DRILLS = [
  {title:'3. Upper and lower enclosure',focus:'Surround the target from both sides.',instructions:['In C play C → B♭ → B over G7.','Count 4 – and – 1; accent only the final B.'],exampleKind:'coach-enclosure'},
  {title:'4. Resolve to major tonic',focus:'Hear the I-chord third as the final musical destination.',instructions:['In C, after the G7 target B, move to E over Cmaj7.','Improvise one short melodic answer that ends on E.'],exampleKind:'coach-tonic-third'}
  ]}),
+ D('jazz-sixth-diminished-major','Barry Harris: major-6 diminished chord families','jazz',8,
+ 'Eight-note scale built by combining I6 and ii°7: in C, C–D–E–F–G–A♭–A–B.',
+ ['This is not just an eight-note finger pattern: it alternates stable C6 chord tones and D°7 passing-diminished tones.','In C, C6 is C–E–G–A; D°7 sounds D–F–A♭–B (that B is spelled C♭ as D°7 double-flat seventh).','Practise each four-note chord arpeggio first, then the scale and a short tension→release example.'],'arpeggio',{quality:'6',reference:['barry','arpeggios'],stages:[
+ {title:'Major sixth arpeggio',focus:'Tonic C6 is C–E–G–A (not Cmaj7).',instructions:['Play degrees 1–3–5–6; in C the sixth is A natural.','Finish on the root.'],exampleKind:'barry6-major-sixth'},
+ {title:'Passing diminished seventh',focus:'D°7 is D–F–A♭–C♭ (sounds like B).',instructions:['This is a fully diminished seventh, not a half-diminished chord.','Hear its tension leading back to the C6 chord family.'],exampleKind:'barry6-major-diminished'},
+ {title:'Eight-note movement scale',focus:'Combine the four chord tones of each family.',instructions:['In C: C D E F G A♭ A B C.','Name the added ♭6; sing the semitone A♭→A resolution.'],exampleKind:'barry6-major-scale'},
+ {title:'Alternate the families',focus:'A short C6 → D°7 → C6 melodic arpeggio study.',instructions:['Play the I6 notes, switch to ii°7, then land on I.','Do not claim this exercise is a transcription of a Barry Harris recording.'],exampleKind:'barry6-major-switch'}
+ ]}),
+ D('jazz-sixth-diminished-minor','Barry Harris: minor-6 diminished chord families','jazz',8,
+ 'Minor sixth tonic Cm6 (C–E♭–G–A) plus D°7 (D–F–A♭–B) yields eight notes.',
+ ['Minor sixth contains natural 6, unlike the natural-minor scale.','In C, combine Cm6 C–E♭–G–A and D°7 D–F–A♭–B (spelled C♭ as D°7 𝄫7).','Contrast minor-6 and diminished colors, then use a short resolution over minor tonic.'],'arpeggio',{quality:'m6',reference:['barry','arpeggios'],stages:[
+ {title:'Minor sixth arpeggio',focus:'Cm6 has E♭ and A natural.',instructions:['Hear the minor third but keep the natural sixth.','Compare the Cm6 tonic against ordinary Cm7.'],exampleKind:'barry6-minor-sixth'},
+ {title:'Diminished passing arpeggio',focus:'D°7 offers four tension notes against minor sixth.',instructions:['In C: D F A♭ B (enharmonic C♭ in the D°7 chord).','Play slowly and listen for voice leading toward Cm6.'],exampleKind:'barry6-minor-diminished'},
+ {title:'Eight-note minor movement scale',focus:'C D E♭ F G A♭ A B C.',instructions:['Hear both A♭ and A natural, separated by a semitone.','Keep the E♭ separate from the major-mode E natural.'],exampleKind:'barry6-minor-scale'},
+ {title:'Alternate tension and tonic',focus:'Play Cm6 → D°7 → Cm6 with a deliberate pause.',instructions:['Sing a stable minor-sixth chord tone, then the passing diminished tones.','Resolve onto Cm6 with relaxed timing and accurate pitches.'],exampleKind:'barry6-minor-switch'}
+ ]}),
  D('jazz-barry','Barry Harris-inspired passing tones','jazz',10,'Add the chromatic major-seventh approach in a descending dominant scale.', ['Start on the dominant root and descend with a chromatic approach through the natural seventh to the flat seventh.','As even eighths, place the dominant chord tones on strong beats.','Sing the guide-tone resolution before playing; this is an entry point, not the full Barry Harris system.'],'barry',{reference:['barry','chromatic']}),
  D('comp-shell','ii–V–I shell voicings','comping',6,'Roots, thirds and sevenths with voice-leading.', ['Use compact three-note shells in a comfortable position.','Play on beats 2 and 4 with relaxed wrist movement.','Release pressure between chords without fully losing your shape.'],'chords',{reference:['comping']}),
  D('comp-rhythm','Swing comping and accents','comping',6,'Hear the rhythm between the chords; do not fill every beat.', ['Alternate attacks on beat 2 and beat 4.','Introduce a syncopated anticipation on the next pass.','Record whether any other strings rang.'],'chords',{reference:['comping','muting']}),
@@ -216,7 +232,7 @@ export const SESSION_MODES=[
 const TECH=[['picking-reset',5],['muting-skip',7],['arp-maj7',10],['penta-major',4],['jazz-251',10],['comp-shell',6],['ear-guide',3]];
 const REP=[['picking-swing',4],['muting-one',5],['arp-m7',7],['jazz-enclosure',7],['comp-rhythm',7],['ear-recall',3],['song',12]];
 const arps=['arp-maj7','arp-m7','arp-dom7','arp-major','arp-minor','arp-m7b5','arp-dim','arp-dim7','arp-aug','arp-6','arp-m6','arp-mMaj7','arp-7sus4','arp-7b5','arp-7sharp5','arp-maj7sharp5','arp-3oct-major','arp-3oct-minor'];
-const jazz=['jazz-251','jazz-guide','jazz-enclosure','jazz-approach','jazz-barry'];
+const jazz=['jazz-251','jazz-guide','jazz-enclosure','jazz-approach','jazz-barry','jazz-sixth-diminished-major','jazz-sixth-diminished-minor'];
 const PLAN_LIBRARY={
  technique:[['picking-reset',5],['muting-skip',7],['arp-maj7',10],['penta-major',4],['jazz-251',10],['comp-shell',6],['ear-guide',3]],
  repertoire:[['picking-swing',4],['muting-one',5],['arp-m7',7],['jazz-enclosure',7],['comp-rhythm',7],['ear-recall',3],['song',12]],

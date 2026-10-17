@@ -280,3 +280,14 @@ test('rhythm drills show changing chord names, verified shell shapes and a keybo
  assert.match(css,/\.rhythm-progress/);
  assert.match(sw,/'\.\/rhythm-variations\.js'/);
 });
+
+test('Barry Harris sixth-diminished drills show tonic and diminished chord families',()=>{
+ assert.match(app,/import \{sixthDiminished,sixthDiminishedNotes\} from '\.\/barry-sixth\.js'/);
+ assert.match(app,/function renderSixthDiminishedContext\(d,key,stage\)/);
+ assert.match(app,/jazz-sixth-diminished-/);
+ assert.match(app,/stage\?\.exampleKind\?\.startsWith\('barry6-'\)/);
+ assert.match(app,/renderSixthDiminishedContext\(d,a\.key,stage\)/);
+ assert.match(app,/renderSixthDiminishedContext\(d,key,currentStage\(d\)\)/);
+ assert.match(css,/\.sixth-dim-chords/);
+ assert.match(sw,/'\.\/barry-sixth\.js'/);
+});

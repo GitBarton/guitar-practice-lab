@@ -6,6 +6,7 @@ import {ARTIST_PROFILES,VOCAB_STUDIES,vocabularyNotes} from './vocabulary.js';
 import {renderStaffTabSvg} from './staff-notation.js';
 import {referenceStudyNotes} from './reference-studies.js';
 import {SongTrackPlayer,songClock} from './song-audio.js';
+import {sixthDiminished,sixthDiminishedNotes} from './barry-sixth.js';
 import {rhythmFigure,rhythmChordShapes,rhythmProgressionLabels} from './rhythm-variations.js';
 import {MODE_FAMILIES,MODE_DEFINITIONS,scaleFor,diatonicSevenths,scaleTabTargets} from './theory-lab.js';
 import {OPEN_STRING_PITCHES,PITCH_CHOICES,pitchFrequency,registerTempoTap,ReferencePitchPlayer} from './reference-pitch.js';
@@ -112,6 +113,7 @@ function referencePattern(d,key){
  return null;
 }
 function drillDiagramNotes(d,key,stage){
+ if(stage?.exampleKind?.startsWith('barry6-'))return sixthDiminishedNotes(stage.exampleKind,key);
  if(stage?.exampleKind?.startsWith('rhythm-153-'))return rhythmFigure(stage.exampleKind,key);
  if(stage?.exampleKind?.startsWith('coach-'))return coachTargets(stage.exampleKind,key);
  const study=referenceStudyNotes(d?.id,key);if(study)return study;
@@ -168,6 +170,19 @@ function updateClock(){const a=state.active,clock=$('practice-clock'),bar=$('tim
  }
 }
 function currentDrill(){const a=state.active;return a?.entries?.[a.position]||null;}
+function renderSixthDiminishedContext(d,key,stage){
+ if(!d?.id?.startsWith('jazz-sixth-diminished-'))return '';
+ const mode=d.id.endsWith('major')?'major':'minor',theory=sixthDiminished(mode,key);
+ const chordName=notes=>notes.map(n=>n.name).join(' · ');
+ return `<div class="sixth-dim-explainer" aria-label="Sixth diminished harmonic explanation">
+  <div class="eyebrow">${safe(key)} ${mode==='major'?'major':'minor'} sixth-diminished · original study</div>
+  <div class="sixth-dim-chords"><div><strong>${safe(theory.sixthSymbol)}</strong><p>${safe(chordName(theory.sixth))}</p></div>
+  <div class="sixth-dim-join">+</div>
+  <div><strong>${safe(theory.diminishedSymbol)}</strong><p>${safe(chordName(theory.dim))}</p></div></div>
+  <p class="micro muted">In C, D°7's diminished seventh is C♭, enharmonic with the scale's B. The diagram uses pitch-checked note targets, not a copyrighted transcription.</p>
+  <div class="sixth-dim-degrees">${theory.scale.map(n=>`<span class="pill" title="${safe(n.degree)}">${safe(n.name)} <small>${safe(n.degree)}</small></span>`).join('')}</div>
+ </div>`;
+}
 function renderDrillCoach(d,key,stage){
  if(!stage?.exampleKind?.startsWith('coach-'))return '';
  const lesson=coachStageDescription(stage.exampleKind,key);
@@ -233,7 +248,7 @@ function renderPractice(){if(!state.active)return `${pageHeader('Practice','Acti
  const noteControls=isChords||isSong?'':`<div class="buttons" style="margin-top:10px">${btn('step-prev',`${ic('minus')} Previous note`,'small')}${tag(diagramStep>=0?`Note ${diagramStep+1} of ${notes.length}`:'All notes')}${btn('step-next',`Next note ${ic('arrow')}`,'small')}<div style="flex:1"></div><div class="segmented"><button class="${state.settings.diagram==='tab'?'active':''}" data-action="diagram-tab">Staff + TAB</button><button class="${state.settings.diagram==='fretboard'?'active':''}" data-action="diagram-fretboard">Fretboard</button></div></div><div class="buttons" style="margin-top:8px">${btn('labels-note',state.settings.labels==='note'?'✓ Notes':'Notes','small')}${btn('labels-interval',state.settings.labels==='interval'?'✓ Intervals':'Intervals','small')}${btn('labels-hidden',state.settings.labels==='hidden'?'✓ Labels hidden':'Hide labels','small')}</div>`;
  const refs=(d?.reference||[]).map(id=>`<a href="#reference/${id}">${safe(REFERENCE_BY_ID[id]?.title||id)}</a>`).join('');
  return `${pageHeader('Active session',stepLabel,`Day ${a.dayNumber+1} · ${a.key.replace('b','♭')} · ${a.mode==='technique'?'Technique':'Repertoire'} · ${entry.minutes} min`,tag((a.position+1)+' / '+a.entries.length,true))}
- <div class="practice-layout"><div class="practice-main"><div class="card practice-diagram"><div class="card-header"><div><div class="eyebrow">${safe(isSong?'Performance rehearsal':categoryTitle(d.category))}</div><h2 style="margin-top:8px">${safe(isSong?song.focus:d.summary)}</h2></div>${ic('target')}</div>${isMusical?`${progressionPills(a.key)}<div style="height:12px"></div>`:''}${coachPanel}${rhythmStageLine(stage,a.key)}${diagram}${referencePanel}${positionControl}${noteControls}
+ <div class="practice-layout"><div class="practice-main"><div class="card practice-diagram"><div class="card-header"><div><div class="eyebrow">${safe(isSong?'Performance rehearsal':categoryTitle(d.category))}</div><h2 style="margin-top:8px">${safe(isSong?song.focus:d.summary)}</h2></div>${ic('target')}</div>${isMusical?`${progressionPills(a.key)}<div style="height:12px"></div>`:''}${coachPanel}${rhythmStageLine(stage,a.key)}${renderSixthDiminishedContext(d,a.key,stage)}${diagram}${referencePanel}${positionControl}${noteControls}
  <div class="practice-instructions">${stageBar}<p class="practice-shortcuts small muted" aria-label="Practice keyboard shortcuts"><kbd>Space</kbd> Timer pause/resume <span aria-hidden="true">·</span> <kbd>M</kbd> Metronome <span aria-hidden="true">·</span> <kbd>↑</kbd>/<kbd>↓</kbd> BPM ±5${stage?' <span aria-hidden="true">·</span> <kbd>Enter</kbd> Next stage':''}</p><div class="card-header"><h3>How to practise</h3>${ic('book')}</div><p class="practice-cue">${safe(guidance)}</p>
  <ol class="instruction-list instruction-stages">${instruct.map((line,i)=>`<li><strong>${['Prepare','Play','Listen / refine'][i]||'Refine'}.</strong> ${safe(line)}</li>`).join('')}</ol>
  ${refs?`<div class="chip-links practice-references">${refs}</div>`:''}
@@ -274,7 +289,7 @@ function renderDrills(){
 function renderDrillDetail(id){const d=DRILL_BY_ID[id];if(!d)return `${pageHeader('Library','Drill not found','Return to the library.')}`;
  const key=todayKey(),instructions=d.kind==='enclosure'?enclosureInstructions(key):d.instructions,notes=drillDiagramNotes(d,key,currentStage(d)),rec=(d.reference||[]).map(ref=>REFERENCE_BY_ID[ref]).filter(Boolean),isChord=d.kind==='chords';
  return `${pageHeader(categoryTitle(d.category),d.title,d.summary,btn(`start-free:${d.id}`,`${ic('play')} practice this drill`,'primary'))}
- <div class="grid-main"><div class="card"><div class="card-header"><h2>Exercise diagram</h2>${tag(key,true)}</div>${referencePatternControls(d,key)}${isChord?rhythmChordBlocks(d,key,currentStage(d)):!notes.length?`<div class="alert">A full three-octave path is not available in this key on a 22-fret standard-tuned guitar. Try another key or a two-octave arpeggio.</div>`:`<div class="eyebrow">Treble staff + aligned TAB (pitch only)</div><div class="diagram-viewport score-viewport" style="margin-top:10px">${renderGuitarStaff(notes)}</div><div class="eyebrow" style="margin-top:20px">Fretboard</div><div class="diagram-viewport" style="margin-top:10px">${renderFretboardSvg(notes,-1,'note')}</div>`}${d.octaves===3?`<p class="alert">Three-octave lines can reach very high frets in some keys. Reduce the range or change key if your guitar or neck comfort makes this impractical.</p>`:''}<div class="divider"></div><h3>How to practice</h3><ol class="instruction-list">${instructions.map(i=>`<li>${safe(i)}</li>`).join('')}</ol>${stageCount(d)?`<h3>Guided stages</h3><ol class="instruction-list">${d.stages.map(stage=>`<li><strong>${safe(stage.title)}:</strong> ${safe(stage.focus)}</li>`).join('')}</ol>`:''} </div><aside class="card"><h3>References</h3>${rec.map(r=>rect(r.title,r.takeaway,'#reference/'+r.id)).join('')||'<p>No specific reference linked.</p>'}<div class="divider"></div><div class="buttons">${btn(`start-free:${d.id}`,'Start solo practice','primary full')}<a class="btn full ghost" href="#drills">Back to library</a></div></aside></div>`;
+ <div class="grid-main"><div class="card"><div class="card-header"><h2>Exercise diagram</h2>${tag(key,true)}</div>${referencePatternControls(d,key)}${renderSixthDiminishedContext(d,key,currentStage(d))}${isChord?rhythmChordBlocks(d,key,currentStage(d)):!notes.length?`<div class="alert">A full three-octave path is not available in this key on a 22-fret standard-tuned guitar. Try another key or a two-octave arpeggio.</div>`:`<div class="eyebrow">Treble staff + aligned TAB (pitch only)</div><div class="diagram-viewport score-viewport" style="margin-top:10px">${renderGuitarStaff(notes)}</div><div class="eyebrow" style="margin-top:20px">Fretboard</div><div class="diagram-viewport" style="margin-top:10px">${renderFretboardSvg(notes,-1,'note')}</div>`}${d.octaves===3?`<p class="alert">Three-octave lines can reach very high frets in some keys. Reduce the range or change key if your guitar or neck comfort makes this impractical.</p>`:''}<div class="divider"></div><h3>How to practice</h3><ol class="instruction-list">${instructions.map(i=>`<li>${safe(i)}</li>`).join('')}</ol>${stageCount(d)?`<h3>Guided stages</h3><ol class="instruction-list">${d.stages.map(stage=>`<li><strong>${safe(stage.title)}:</strong> ${safe(stage.focus)}</li>`).join('')}</ol>`:''} </div><aside class="card"><h3>References</h3>${rec.map(r=>rect(r.title,r.takeaway,'#reference/'+r.id)).join('')||'<p>No specific reference linked.</p>'}<div class="divider"></div><div class="buttons">${btn(`start-free:${d.id}`,'Start solo practice','primary full')}<a class="btn full ghost" href="#drills">Back to library</a></div></aside></div>`;
 }
 let modalFamily='melodic',modalKey='C',modalId='altered',modalStep=-1,modalPosition='G';
 function renderModesLab(){
