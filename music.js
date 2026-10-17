@@ -3,8 +3,8 @@ const PC_NAMES=['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
 const SHARP_NAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const STRING_MIDIS=[64,59,55,50,45,40]; // display high e, B, G, D, A, low E
 const STRING_NAMES=['e','B','G','D','A','E'];
-const INTERVALS={major:[0,4,7],minor:[0,3,7],dim:[0,3,6],maj7:[0,4,7,11],m7:[0,3,7,10],7:[0,4,7,10],m7b5:[0,3,6,10],dim7:[0,3,6,9],aug:[0,4,8],pentMajor:[0,2,4,7,9],pentMinor:[0,3,5,7,10]};
-const INTERVAL_LABEL={0:'1',2:'2',3:'♭3',4:'3',5:'4',6:'♭5',7:'5',8:'♯5',9:'6 / 𝄫7',10:'♭7',11:'7'};
+const INTERVALS={major:[0,4,7],minor:[0,3,7],dim:[0,3,6],maj7:[0,4,7,11],m7:[0,3,7,10],7:[0,4,7,10],m7b5:[0,3,6,10],dim7:[0,3,6,9],aug:[0,4,8],6:[0,4,7,9],m6:[0,3,7,9],mMaj7:[0,3,7,11],'7sus4':[0,5,7,10],'7b5':[0,4,6,10],'7#5':[0,4,8,10],'maj7#5':[0,4,8,11],pentMajor:[0,2,4,7,9],pentMinor:[0,3,5,7,10]};
+const INTERVAL_LABEL={0:'1',2:'2',3:'♭3',4:'3',5:'4',6:'♭5',7:'5',8:'♯5',9:'6',10:'♭7',11:'7'};
 export {INTERVALS,PC_NAMES};
 export const escapeHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function keyPc(key){const v={Bb:10,Eb:3,Ab:8,Db:1,Gb:6};return v[key]??SHARP_NAMES.indexOf(key);}
@@ -48,11 +48,12 @@ export function buildNotePath(key='C',quality='maj7',octaves=2,position='low'){
   }states=next;if(!states.length)return [];
  }
  const best=states.sort((a,b)=>a.cost-b.cost)[0];
- return pitches.map((midi,i)=>({midi,name:noteName(midi),pc:midi%12,interval:INTERVAL_LABEL[(midi-root)%12]??'',fret:best.path[i].fret,string:best.path[i].string,pick:i%2?'U':'D',index:i}));
+ return pitches.map((midi,i)=>({midi,name:noteName(midi),pc:midi%12,interval:quality==='dim7'&&((midi-root)%12)===9?'𝄫7':quality==='7b5'&&((midi-root)%12)===6?'♭5':quality==='7sus4'&&((midi-root)%12)===5?'4':INTERVAL_LABEL[(midi-root)%12]??'',fret:best.path[i].fret,string:best.path[i].string,pick:i%2?'U':'D',index:i}));
 }
 function cell(note, string, fret,pick){return {name:note,fret,string,pick};}
 export function buildExample(kind,key='C',quality='maj7',octaves=2,position='low'){
  if(kind==='arpeggio'||kind==='scale')return buildNotePath(key,quality,octaves,position);
+ if(kind==='arpeggio-dim7')return buildNotePath(key,'dim7',octaves,position);
 
  // Fingering targets for a G-only vibrato isolation drill (not simultaneous notes).
  if(kind==='vibrato-g')return [
