@@ -3,7 +3,7 @@
 import {keyPc,noteName} from './music.js';
 import {buildTwoFiveOne} from './harmony.js';
 const OPEN=[64,59,55,50,45,40];
-const VALID=new Set(['coach-thirds','coach-sevenths','coach-roots','coach-fifths','coach-guide','coach-v-third','coach-lower-approach','coach-enclosure','coach-tonic-third']);
+const VALID=new Set(['coach-thirds','coach-sevenths','coach-roots','coach-seconds','coach-fifths','coach-guide','coach-v-third','coach-lower-approach','coach-enclosure','coach-tonic-third']);
 function targetAt(pc,anchor=65){
  // Correct pitch class near an ordinary melodic register (C4-C5).
  const candidates=Array.from({length:25},(_,i)=>60+i).filter(n=>n%12===pc);
@@ -25,12 +25,12 @@ export function coachTargets(kind,key='C'){
  const roles=plan.chords;
  // Degrees relative to each chord root. ii and V are minor / dominant sevenths.
  const degrees=kind==='coach-thirds'?[3,4,4]:kind==='coach-sevenths'?[10,10,11]:
-  kind==='coach-roots'?[0,0,0]:kind==='coach-fifths'?[7,7,7]:null;
+  kind==='coach-roots'?[0,0,0]:kind==='coach-seconds'?[2,2,2]:kind==='coach-fifths'?[7,7,7]:null;
  let sequence;
  if(degrees){
   sequence=roles.map((chord,i)=>({pc:(chord.rootPc+degrees[i])%12,chord:chord.label,
    role:chord.role,degree:kind==='coach-thirds'?(i===0?'♭3':'3'):
-    kind==='coach-sevenths'?(i===2?'7':'♭7'):kind==='coach-roots'?'1':'5'}));
+    kind==='coach-sevenths'?(i===2?'7':'♭7'):kind==='coach-roots'?'1':kind==='coach-seconds'?'2 / 9':'5'}));
  }else if(kind==='coach-guide'){
   sequence=[{root:roles[0],offset:3,degree:'♭3'},{root:roles[0],offset:10,degree:'♭7'},
    {root:roles[1],offset:4,degree:'3'},{root:roles[1],offset:10,degree:'♭7'},
@@ -60,6 +60,7 @@ export function coachStageDescription(kind,key='C'){
   'coach-thirds':'Land on each chord third, in ii → V → I order.',
   'coach-sevenths':'Connect each seventh, preserving its actual chord quality.',
   'coach-roots':'Name the root of each changing chord.',
+  'coach-seconds':'Hear degree 2 (the ninth) above each chord root as a melodic extension.',
   'coach-fifths':'Connect each fifth; finish on the fifth of the major tonic.',
   'coach-guide':'Sing the third/seventh pairs and target the next chord before playing.',
   'coach-v-third':'Hear the major third of '+V+' before looking at the note.',
