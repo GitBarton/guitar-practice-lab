@@ -33,9 +33,10 @@ export function rhythmFigure(kind,key='C'){
  for(const degree of FIGURES[kind]){
   const chord=chords[degree],root=48+chord.rootPc;
   const third=root+12+(TRIADS_QUALITY[chord.quality]??4);
+  const fifthInterval=chord.quality==='m7♭5'?6:7;
   const steps=[
    {midi:root,string:4,interval:'1'},      // A string
-   {midi:root+7,string:2,interval:'5'},    // G string; D is silent
+   {midi:root+fifthInterval,string:2,interval:fifthInterval===6?'♭5':'5'},    // G string; D is silent
    {midi:third,string:1,interval:chord.quality==='m7'||chord.quality==='m7♭5'?'♭3':'3'} // B string
   ];
   for(const note of steps){
