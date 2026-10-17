@@ -1,5 +1,11 @@
-export const APP_VERSION = '1.2.0';
+export const APP_VERSION = '2.0.0';
 export const RELEASE_NOTES = [
+  {version:'2.0.0',date:'2026-10-17',title:'Integrated jazz practice and musical reference',changes:[
+    'Refresh the jazz coaching flow with staged targets and 12-key harmony examples.',
+    'Add clearer staff + TAB notation and expanded arpeggio, pentatonic and sixth-diminished study references.',
+    'Improve rhythm variation, musical muting drills, chord backing and practice navigation.',
+    'Preserve local-first practice records, ratings, repertoire and optional sync; continue manual acceptance checks before release.'
+  ]},
   {
     version: '1.2.0', date: '2026-10-13', title: 'Dynamic technique and musical challenges',
     changes: [
