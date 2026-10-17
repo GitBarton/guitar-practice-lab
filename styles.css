@@ -277,3 +277,19 @@ body[data-theme="light"] .hero{box-shadow:0 17px 40px #60413a25}
 /* Score + TAB unified visual; keep staff and TAB together on narrow displays. */
 .score-viewport{overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-gutter:stable;min-height:0;padding:12px 14px}.score-viewport svg.guitar-staff-tab{max-width:none;width:max-content;min-width:100%;height:auto}.guitar-staff-tab .score-note[role="button"]{cursor:pointer}.guitar-staff-tab .score-note[role="button"]:focus-visible{outline:none;filter:drop-shadow(0 0 5px var(--teal))}.guitar-staff-tab .score-note.selected{filter:drop-shadow(0 0 3px var(--teal))}
 @media(max-width:770px){.score-viewport{padding:8px;scrollbar-gutter:auto}}
+
+/* Harmonically guided drill: stage targets and shared local piano accompaniment */
+.drill-coach{border:1px solid var(--teal);background:var(--panel2);margin:12px 0 18px;padding:15px}
+.drill-coach .card-header{align-items:center;gap:10px;flex-wrap:wrap}
+.drill-coach h3{margin:3px 0;font-size:16px}
+.coach-lesson-heading{margin:12px 0;color:var(--text);font-weight:600;font-size:13px;line-height:1.6}
+.coach-targets{display:flex;flex-wrap:wrap;gap:7px;margin:11px 0}
+.coach-note{display:flex;flex-direction:column;gap:4px;border:1px solid var(--line);border-radius:9px;background:var(--panel);padding:8px 10px;min-width:90px}
+.coach-note strong{font-size:13px;line-height:1.3;color:var(--text)}
+.coach-chords{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:14px 0}
+.coach-chord{display:flex;flex-direction:column;align-items:center;gap:5px;padding:12px 8px;border:1px solid var(--line);border-radius:10px;background:var(--panel);text-align:center}
+.coach-chord strong{font-size:17px}
+.coach-chord.current{border-color:var(--teal);box-shadow:inset 0 0 0 1px var(--teal);background:var(--teal2)}
+.coach-controls{display:flex;gap:11px;align-items:center;flex-wrap:wrap}
+.drill-coach [aria-live]{min-height:1.2em}
+@media(max-width:590px){.drill-coach{padding:11px}.coach-chord strong{font-size:14px}.coach-chord{padding:10px 4px}}
