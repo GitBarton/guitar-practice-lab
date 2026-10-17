@@ -38,9 +38,10 @@ export function coachTargets(kind,key='C'){
    .map(x=>({pc:(x.root.rootPc+x.offset)%12,chord:x.root.label,role:x.root.role,degree:x.degree}));
  }else{
   const dominantThird=(tonic+11)%12,majorThird=(tonic+4)%12;
-  const target={pc:dominantThird,chord:roles[1].label,role:'V',degree:'3'};
-  const low={pc:(dominantThird+11)%12,chord:roles[1].label,role:'V',degree:'chromatic lower'};
-  const high={pc:(dominantThird+1)%12,chord:roles[1].label,role:'V',degree:'chromatic upper'};
+  const dominantMidi=targetAt(dominantThird,70);
+  const target={pc:dominantThird,midiHint:dominantMidi,chord:roles[1].label,role:'V',degree:'3'};
+  const low={pc:(dominantThird+11)%12,midiHint:dominantMidi-1,chord:roles[1].label,role:'V',degree:'chromatic lower'};
+  const high={pc:(dominantThird+1)%12,midiHint:dominantMidi+1,chord:roles[1].label,role:'V',degree:'chromatic upper'};
   sequence=kind==='coach-v-third'?[target]:
    kind==='coach-lower-approach'?[low,target]:
    kind==='coach-enclosure'?[high,low,target]:
@@ -48,7 +49,7 @@ export function coachTargets(kind,key='C'){
  }
  let previous=null;
  return sequence.map((item,index)=>{
-  const midi=targetAt(item.pc,previous?.midi??65),position=fingerPosition(midi,previous);previous={...position,midi};
+  const midi=item.midiHint??targetAt(item.pc,previous?.midi??65),position=fingerPosition(midi,previous);previous={...position,midi};
   return {...position,midi,pc:midi%12,name:noteName(midi),pick:index%2?'U':'D',index,
    interval:item.degree,chord:item.chord,role:item.role};
  });
