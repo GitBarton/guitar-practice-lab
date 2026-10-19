@@ -106,10 +106,10 @@ function renderToday(){const complete=countSessions(),recent=lastSeven(),session
  <div class="grid-main"><div>${top}<div style="height:20px"></div><div class="card"><div class="card-header"><h2>Today's ${planDuration}-minute plan</h2>${tag('Key '+preview.key,true)}</div>${queueOverview(state.active||preview)}</div></div>
  <aside class="card"><div class="card-header"><h3>Session setup</h3>${ic('target')}</div><div class="form-group"><label for="mode">Practice mode</label><select id="mode" data-setting="selectedMode" ${state.active?'disabled':''}>${SESSION_MODES.map(([id,label])=>`<option value="${id}" ${mode===id?'selected':''}>${safe(label)}</option>`).join('')}</select></div><div class="form-group" style="margin-top:13px"><label for="duration">Session length</label><select id="duration" data-setting="selectedDuration" ${state.active?'disabled':''}>${SESSION_DURATIONS.map(n=>`<option value="${n}" ${duration===n?'selected':''}>${n} minutes${n===45?' · original':''}</option>`).join('')}</select></div><div class="form-group" style="margin-top:13px"><label for="key">Primary key</label><select id="key" data-setting="selectedKey" ${state.active?'disabled':''}><option value="auto" ${state.settings.selectedKey==='auto'?'selected':''}>Auto · circle of fourths</option>${KEYS.map(k=>`<option value="${k}" ${state.settings.selectedKey===k?'selected':''}>${k}</option>`).join('')}</select></div><div class="form-group" style="margin-top:13px"><label for="song">Repertoire focus</label><select id="song" data-setting="selectedSong" ${state.active?'disabled':''}>${allSongs().map(s=>`<option value="${s.id}" ${state.settings.selectedSong===s.id?'selected':''}>${safe(s.title)}</option>`).join('')}</select></div><div class="divider"></div><div class="eyebrow">Key rotation</div><div class="key-grid" style="margin-top:12px">${KEYS.map((k,i)=>`<div class="key-tile ${preview.key===k?'current':''}">${k.replace('b','♭')}</div>`).join('')}</div><p class="footnote">One primary key per practice day. A full rotation takes 12 sessions; override the key when needed.</p></aside></div>`;
 }
-function referencePattern(d,key){
+function referencePattern(d,key,stage=null){
  if(d?.category==='pentatonic'&&['pentMajor','pentMinor'].includes(d.quality))
   return d.id==='penta-string'?referencePentatonicSkip(key,d.quality,pentatonicBox):referencePentatonicBox(key,d.quality,pentatonicBox);
- if(d?.id==='arp-dom7')return referenceDominant7(key,dominantRootString);
+ if(d?.id==='arp-dom7')return referenceDominant7(key,stage?.rootString||dominantRootString);
  return null;
 }
 function drillDiagramNotes(d,key,stage){
@@ -117,10 +117,10 @@ function drillDiagramNotes(d,key,stage){
  if(stage?.exampleKind?.startsWith('rhythm-153-'))return rhythmFigure(stage.exampleKind,key);
  if(stage?.exampleKind?.startsWith('coach-'))return coachTargets(stage.exampleKind,key);
  const study=referenceStudyNotes(d?.id,key);if(study)return study;
- return referencePattern(d,key)?.notes||buildExample(stage?.exampleKind||d.kind,key,d.quality||'maj7',d.octaves||2,state.settings.position);
+ return referencePattern(d,key,stage)?.notes||buildExample(stage?.exampleKind||d.kind,key,d.quality||'maj7',d.octaves||2,state.settings.position);
 }
-function referencePatternControls(d,key){
- const pattern=referencePattern(d,key);
+function referencePatternControls(d,key,stage=null){
+ const pattern=referencePattern(d,key,stage);
  if(!pattern)return '';
  const choice=d.category==='pentatonic'
  ? `<div role="group" aria-label="Five reference pentatonic boxes" class="buttons">${[1,2,3,4,5].map(i=>`<button type="button" class="btn small ${i===pentatonicBox?'primary':''}" data-action="pentatonic-box:${i}" aria-pressed="${i===pentatonicBox}">Box ${i}</button>`).join('')}</div>`
@@ -244,7 +244,7 @@ function renderPractice(){if(!state.active)return `${pageHeader('Practice','Acti
  const instruct=stage?stage.instructions:isSong?['Select one difficult section, not the entire arrangement.','Play once under tempo, then at performance tempo.','Record what specifically needs work for the next session.']:d.kind==='enclosure'?enclosureInstructions(a.key):d.instructions;
  const stageBar=stage?`<section class="stage-panel" aria-label="Guided exercise stages"><div class="stage-summary"><div><div class="eyebrow">Musical challenge · ${stageIndex+1} of ${stageCount(d)}</div><h3>${safe(stage.title)}</h3></div><span class="pill">${Math.round(entry.minutes/stageCount(d)*60)} sec suggested</span></div><div class="stage-steps"><button type="button" data-action="stage-prev" class="btn small" ${stageIndex===0?'disabled':''}>← Previous stage</button><span class="small muted">Advance when ready; timer and metronome continue. Press Enter for next stage.</span><button type="button" data-action="stage-next" class="btn small" ${stageIndex===stageCount(d)-1?'disabled':''}>Next stage →</button></div></section>`:'';
  const positionControl=(!isSong&&['arpeggio','scale'].includes(d?.kind)&&!referencePattern(d,a.key))?`<div class="form-group" style="max-width:280px;margin:12px 0"><label>Fretboard area (suggested route)</label><select data-setting="position"><option value="low" ${state.settings.position==='low'?'selected':''}>Lower neck</option><option value="mid" ${state.settings.position==='mid'?'selected':''}>Middle neck</option><option value="high" ${state.settings.position==='high'?'selected':''}>Upper neck</option></select></div>`:'';
- const referencePanel=d?referencePatternControls(d,a.key):'';
+ const referencePanel=d?referencePatternControls(d,a.key,stage):'';
  const noteControls=isChords||isSong?'':`<div class="buttons" style="margin-top:10px">${btn('step-prev',`${ic('minus')} Previous note`,'small')}${tag(diagramStep>=0?`Note ${diagramStep+1} of ${notes.length}`:'All notes')}${btn('step-next',`Next note ${ic('arrow')}`,'small')}<div style="flex:1"></div><div class="segmented"><button class="${state.settings.diagram==='tab'?'active':''}" data-action="diagram-tab">Staff + TAB</button><button class="${state.settings.diagram==='fretboard'?'active':''}" data-action="diagram-fretboard">Fretboard</button></div></div><div class="buttons" style="margin-top:8px">${btn('labels-note',state.settings.labels==='note'?'✓ Notes':'Notes','small')}${btn('labels-interval',state.settings.labels==='interval'?'✓ Intervals':'Intervals','small')}${btn('labels-hidden',state.settings.labels==='hidden'?'✓ Labels hidden':'Hide labels','small')}</div>`;
  const refs=(d?.reference||[]).map(id=>`<a href="#reference/${id}">${safe(REFERENCE_BY_ID[id]?.title||id)}</a>`).join('');
  return `${pageHeader('Active session',stepLabel,`Day ${a.dayNumber+1} · ${a.key.replace('b','♭')} · ${a.mode==='technique'?'Technique':'Repertoire'} · ${entry.minutes} min`,tag((a.position+1)+' / '+a.entries.length,true))}
