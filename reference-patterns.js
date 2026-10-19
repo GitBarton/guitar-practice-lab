@@ -44,9 +44,13 @@ export function referencePentatonicBox(key='A',quality='pentMinor',box=1){
    notes.push(note);
   }
  }
- return {key,quality,box,notes,
+ // Preserve a predictable ascending route, then retrace it descending.
+ // Each note remains an actual fretted location verified by noteAt.
+ const ascending=notes.slice().sort((a,b)=>a.midi-b.midi||a.string-b.string);
+ const descending=ascending.slice().reverse();
+ return {key,quality,box,notes,ascending,descending,
   fretRange:[Math.min(...notes.map(n=>n.fret)),Math.max(...notes.map(n=>n.fret))],
-  caption:box===1?'Root-box study; index/ring/pinky fingering is indicated where it fits.':'One of five overlapping conventional box shapes; avoid a single rigid fingering in every key.'};
+  caption:box===1?'Root-box study: ascend from the lowest pitch and retrace the same notes down; finger numbers are suggested where practical.':'Pentatonic position study: ascend in pitch across adjacent strings, reverse descending, and avoid large fretting-hand jumps.'};
 }
 export function referencePentatonicSkip(key='A',quality='pentMinor',box=1){
  const source=referencePentatonicBox(key,quality,box);
