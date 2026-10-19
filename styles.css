@@ -315,3 +315,11 @@ body[data-theme="light"] .hero{box-shadow:0 17px 40px #60413a25}
 .sixth-dim-degrees .pill{display:inline-flex;flex-direction:column;gap:3px;align-items:center;padding:8px 11px}
 .sixth-dim-degrees .pill small{font-size:10px;opacity:.7}
 @media(max-width:470px){.sixth-dim-explainer{padding:10px}.sixth-dim-chords{grid-template-columns:minmax(0,1fr)}.sixth-dim-join{font-size:14px}}
+
+/* Practice UX: instructions before notation, immediately readable without a long scroll. */
+.practice-diagram>.stage-panel{margin:0 0 12px}
+.practice-diagram>.practice-instructions{margin:0 0 14px;padding:12px 14px;border:1px solid var(--line);border-left:4px solid var(--teal);border-radius:10px;background:var(--panel2)}
+.practice-diagram>.practice-instructions .practice-shortcuts{margin:0 0 8px}
+.practice-diagram>.practice-instructions .instruction-stages{margin:8px 0 6px;padding-left:22px}
+.practice-diagram>.drill-coach{margin-top:12px}
+@media(max-width:770px){.practice-diagram>.practice-instructions{padding:10px 12px}.practice-diagram>.practice-instructions .instruction-stages{line-height:1.4}}
