@@ -204,6 +204,16 @@ export const DRILLS = [
  {title:'Mixolydian V landmarks',focus:'Use the dominant 3 and ♭7 before adding chromatic color.',instructions:['In C major, G7 uses B and F.','Enclose B chromatically then resolve to E of Cmaj7.'],exampleKind:'coach-enclosure'},
  {title:'Guide-tone resolution',focus:'End a two-bar phrase on a tonic guide tone.',instructions:['Move from G7 3/♭7 into Cmaj7 3/7.','Repeat in the selected key and reduce unnecessary fret jumps.'],exampleKind:'coach-guide'}
  ]}),
+ D('jazz-modal-color-targets','Modal color-tone improvisation · six sounds','jazz',12,
+ 'Six two-minute challenges: identify the seventh-chord quality, hear its characteristic tensions, then make a short phrase.',
+ ['Choose the active mode and read its chord label before improvising.','Play the exact targets shown in TAB; finish a two-bar answer on a chord tone.','Advance through Lydian dominant, Mixolydian ♭6, altered and harmonic minor without changing the practice timer.'],'scale',{reference:['arpeggios','ii-v-i'],stages:[
+ {title:'Ionian · major tonic',focus:'3 and 7 establish a major-seventh tonic.',instructions:['In C, E and B outline Cmaj7.','Phrase for two bars, then pause and repeat.'],exampleKind:'modal-target-ionian'},
+ {title:'Dorian · minor seventh',focus:'♭3 and ♭7 define the minor-seventh shell.',instructions:['In C Dorian, E♭ and B♭ provide the characteristic minor-seventh notes.','Add natural sixth A as color in a short response.'],exampleKind:'modal-target-dorian'},
+ {title:'Lydian dominant · ♯11',focus:'Major 3, ♯11 and ♭7 signal 7♯11.',instructions:['In C, E–F♯–B♭ are target tones.','Avoid confusing F♯ with the natural 5, G.'],exampleKind:'modal-target-lydian-dominant'},
+ {title:'Mixolydian ♭6 · ♭13',focus:'Contrast E (3) with A♭ (♭13) over C7.',instructions:['Use E–A♭–B♭ as target tones.','Resolve your two-bar phrase to E or B♭.'],exampleKind:'modal-target-mixolydian-flat6'},
+ {title:'Altered dominant · altered tensions',focus:'Target 3, ♭9, ♯9 and ♭7 in a controlled phrase.',instructions:['C altered: E, D♭, E♭ and B♭; the ♯9 is spelled D♯ theoretically.','Land on E or B♭ at the cadence.'],exampleKind:'modal-target-altered'},
+ {title:'Harmonic minor · minor-major seventh',focus:'♭3 and natural 7 distinguish i m(maj7).',instructions:['In C harmonic minor, E♭ and B anchor Cm(maj7).','Use the interval contrast to create a question and answer.'],exampleKind:'modal-target-harmonic-minor'}
+ ]}),
  D('jazz-bebop-dominant','Bebop dominant: descending eighth-note alignment','jazz',7,
  'Explore the added natural seventh in the dominant bebop collection and verify chord-tone landings through rhythmic placement.',
  ['Over G7 use G–A–B–C–D–E–F–F♯; this is a dominant scale with the passing natural seventh.','Start on a chord tone on a downbeat and descend in eighth notes; verify alignment instead of assuming every starting position works.','Use the chosen key and finish with a V–I resolution.'],'barry',{reference:['barry','chromatic'],stages:[
