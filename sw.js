@@ -1,4 +1,4 @@
-const CACHE='gpl-app-v1.2.0-rhythm-barry-20261017';
+const CACHE='gpl-app-v2.0.0-rc-20261017';
 const ASSETS=['./barry-sixth.js','./rhythm-variations.js','./practice-coach.js','./reference-studies.js','./staff-notation.js','./vocabulary.js','./manual-songs.js','./modal-harmony.js','./mode-positions.js','./reference-patterns.js','./','./index.html','./styles.css','./app.js','./data.js','./music.js','./song-audio.js','./reference-pitch.js','./storage.js','./config.js','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png','./harmony.js','./theory-lab.js','./backing-audio.js'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});

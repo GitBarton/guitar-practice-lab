@@ -2,6 +2,13 @@
 
 This changelog mirrors the **What’s new** screen in the application. Releases become public when their pull request is merged into `main` and GitHub Pages finishes deploying.
 
+## 2.0.0 — 2026-10-17 — Release candidate (not yet published)
+
+- Consolidates recently integrated staged jazz coaching, staff/TAB, dynamic rhythm exercises, expanded arpeggio vocabulary and local chord backing.
+- Adds incremental major/minor sixth-diminished Barry Harris-inspired studies from PR #56 (requires upstream merge).
+- Maintains existing local-first data, optional sync and historical rating formats.
+- **Not a claim that all 25 issues are resolved:** audio acceptance, fretboard ergonomics, rhythmic notation and several extended curricula still require review. Do not publish or tag until verification passes.
+
 ## 1.2.0 — 2026-10-13 — Dynamic technique and musical challenges
 
 - Guided picking stages for isolation, skips, double-stops and octave grips.

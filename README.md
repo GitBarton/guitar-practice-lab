@@ -1,4 +1,4 @@
-# Guitar Practice Lab v1.1.0
+# Guitar Practice Lab v2.0.0 (release candidate)
 
 A local-first, zero-build, static jazz guitar practice app. Mac, Windows, iPhone responsive. Includes 35 drills, practice sessions (45 min), interactive generated guitar TAB / fretboard / chord diagrams, Web Audio metronome, 12-key rotation, repertoire notes for Logos-Motive songs, 10%-step self-assessed execution quality ratings, weekly exports, CSV/JSON backups, and optional Supabase cloud synchronization.
 
