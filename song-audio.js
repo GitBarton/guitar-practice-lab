@@ -38,10 +38,10 @@ export class SongTrackPlayer{
  load(file,songId){
   validateLocalTrack(file);
   if(!songId||typeof songId!=='string')throw Error('Select a song first.');
+  const a=this.ensureAudio(); // Validate browser support before creating an object URL.
   const url=URL.createObjectURL(file);
-  this.pause();
+  try{this.pause();}catch(error){URL.revokeObjectURL(url);throw error;}
   if(this.objectUrl)URL.revokeObjectURL(this.objectUrl);
-  const a=this.ensureAudio();
   this.objectUrl=url;this.songId=songId;this.fileName=file.name;
   this.abStart=null;this.abEnd=null;this.abLoop=false;this.fullLoop=false;this.error='';
   a.loop=false;a.src=url;a.load();this.onChange();
