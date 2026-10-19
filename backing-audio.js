@@ -48,7 +48,14 @@ export class ChordBacking{
   this.schedule();
  }
  setTempo(value){this.tempo=clampHarmonyTempo(value);}
- setVolume(value){this.masterVolume=clampMix(value,.65);}
+ setVolume(value){
+  this.masterVolume=clampMix(value,.65);
+  // Volume adjustments affect future notes, while the output bus responds
+  // immediately without restarting the harmony clock or active session.
+  if(this.masterBus&&this.ctx){
+   this.masterBus.gain.setTargetAtTime(.88*this.masterVolume,this.ctx.currentTime,.025);
+  }
+ }
  setReverb(value){
   this.reverbMix=clampMix(value,.42);
   if(this.wetBus&&this.ctx)this.wetBus.gain.setTargetAtTime(this.reverbMix*.62,this.ctx.currentTime,.035);
@@ -61,7 +68,7 @@ export class ChordBacking{
   convolver.buffer=makeReverbImpulse(ctx);
   comp.threshold.value=-13;comp.knee.value=12;comp.ratio.value=2.5;
   comp.attack.value=.008;comp.release.value=.24;
-  dry.gain.value=1;wet.gain.value=this.reverbMix*.62;master.gain.value=.88;
+  dry.gain.value=1;wet.gain.value=this.reverbMix*.62;master.gain.value=.88*this.masterVolume;
   dry.connect(master);convolver.connect(wet);wet.connect(master);
   master.connect(comp).connect(ctx.destination);
   this.dryBus=dry;this.wetBus=wet;this.reverb=convolver;
