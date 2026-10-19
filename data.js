@@ -149,6 +149,7 @@ export const DRILLS = [
  {title:'The fifth of each chord',focus:'Use stable chord tones, then end on tonic fifth.',instructions:['In C aim at A (ii), D (V), G (I).','Play one note per chord change before developing a phrase.'],exampleKind:'coach-fifths'},
  {title:'Connect the sevenths',focus:'Minor sevenths on ii/V; major seventh on I.',instructions:['In C: Dm7 has C, G7 has F, Cmaj7 has B.','Sing the next target before you play it.'],exampleKind:'coach-sevenths'},
  {title:'Connect the thirds',focus:'This is where each chord quality becomes audible.',instructions:['In C: F over Dm7, B over G7, E over Cmaj7.','Leave one beat of silence after each target.'],exampleKind:'coach-thirds'},
+ {title:'Chromatic V-third enclosure',focus:'In C surround B over G7, then resolve into Cmaj7.',instructions:['Use upper C, lower B♭, target B on the dominant, with the target on beat one.','Move the final phrase to the third of I, E in C, and change register on repetition.'],exampleKind:'coach-enclosure'},
  {title:'Guide-tone solo',focus:'Connect thirds and sevenths into your own two-bar answer.',instructions:['Play the six notes in the diagram as guide-tone anchors.','Improvise a short phrase between two targets, ending on the third of I.'],exampleKind:'coach-guide'}
  ]}),
  D('jazz-guide','Guide-tone voice leading · interactive','jazz',10,
@@ -157,6 +158,7 @@ export const DRILLS = [
  {title:'Hear the thirds',focus:'The minor third of ii becomes the major third of V and I.',instructions:['In C: F (Dm7), B (G7), E (Cmaj7).','Aim at each third on the first beat of its chord.'],exampleKind:'coach-thirds'},
  {title:'Hear the sevenths',focus:'Use the correct quality of each seventh.',instructions:['In C: C over Dm7, F over G7, B over Cmaj7.','Avoid treating Cmaj7 as C7; its seventh is B natural.'],exampleKind:'coach-sevenths'},
  {title:'Guide-tone route',focus:'Six targets show the full 3–7 connection.',instructions:['Name each chord before playing its third and seventh.','Work slowly through Dm7 → G7 → Cmaj7.'],exampleKind:'coach-guide'},
+ {title:'Root and fifth landmarks',focus:'Orient yourself before choosing a different register.',instructions:['Find roots for ii, V and I, then each fifth in the selected key.','Play each target at two comfortable guitar positions rather than repeating one grip.'],exampleKind:'coach-roots'},
  {title:'Enclose the dominant third',focus:'Approach the third of V chromatically from both sides.',instructions:['In C: C → B♭ → B over G7; B is the target.','Land on B on a strong beat, then resolve to C major harmony.'],exampleKind:'coach-enclosure'}
  ]}),
  D('jazz-enclosure','Chromatic enclosure of the V7 third','jazz',10,'Surround the dominant chord’s major third with its upper and lower chromatic neighbors, then resolve on a strong beat.', ['In C major, V7 is G7 and its major third is B.','Play C (a semitone above B), then B♭ (a semitone below), then B (the target) on a strong beat.','Transpose to today’s key and resolve a short V7 phrase into the I chord.'],'enclosure',{reference:['chromatic','barry'],stages:[
@@ -207,6 +209,7 @@ export const DRILLS = [
  ['Play ii–V–I piano chords, then sing the V7 third without looking.','Connect the flat seventh of V7 to I.','Resolve onto the major third of I.'],'ear',{reference:['ii-v-i','ear'],stages:[
  {title:'Hear the V7 third',focus:'In C, sing B over G7 before showing the diagram.',instructions:['Do not pick yet; first sing the expected V7 third.','Check your pitch on the guitar.'],exampleKind:'coach-v-third'},
  {title:'Hear each seventh',focus:'In C: C over Dm7, F over G7, B over Cmaj7.',instructions:['Listen to all three chord changes; sing each seventh.','Touch the displayed tone only to verify pitch.'],exampleKind:'coach-sevenths'},
+ {title:'Hear the lower chromatic approach',focus:'Sing the semitone into the V chord third without looking.',instructions:['Over G7 in C, sing B♭ then B; verify the two notes on guitar after hearing the chord.','Transplant the semitone target into the selected key and change the register on your next pass.'],exampleKind:'coach-lower-approach'},
  {title:'Resolve onto I',focus:'In C, resolve to E, the major third of Cmaj7.',instructions:['Sing the resolution first, without looking at the label.','Play the target note and assess whether it sounds settled.'],exampleKind:'coach-tonic-third'}
  ]}),
  D('ear-recall','Two-bar phrase recall','ear',3,'Remember and reproduce a phrase rather than sight-read.', ['Play an original two-bar cell.','Sing it back after a few seconds of silence.','Replay it from memory and compare.'],'ear',{reference:['ear']}),
