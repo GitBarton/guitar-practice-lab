@@ -111,20 +111,20 @@ export class ChordBacking{
  playChord(chord,when,barDuration,velocity=1){
   const length=Math.max(.24,Math.min(1.7,barDuration*.79));
   const count=Math.max(1,chord.midi.length);
-  const strength=.34*this.masterVolume*velocity/count;
+  const strength=.34*velocity/count;
   // Keep root-position tonic distinct; slightly emphasize the root without inverting tones.
   for(let index=0;index<chord.midi.length;index++){
    const weight=chord.index===2&&index===0?1.18:1;
    this.playNote(chord.midi[index],when,length,strength*weight);
   }
   // The tonic uses a less boomy C3 bass; the other chords retain their lower anchor.
-  this.playNote(chord.bassMidi,when,Math.min(length,1.25),.052*this.masterVolume);
+  this.playNote(chord.bassMidi,when,Math.min(length,1.25),.052);
  }
  click(when,strong){
   const ctx=this.ctx,g=ctx.createGain(),o=ctx.createOscillator();
   o.type='sine';o.frequency.setValueAtTime(strong?1030:720,when);
   g.gain.setValueAtTime(.0001,when);
-  g.gain.exponentialRampToValueAtTime((strong?.05:.026)*this.masterVolume,when+.006);
+  g.gain.exponentialRampToValueAtTime((strong?.05:.026),when+.006);
   g.gain.exponentialRampToValueAtTime(.0001,when+.075);
   o.connect(g).connect(this.dryBus);o.start(when);o.stop(when+.09);
   const voice={osc:o,gain:g};this.activeVoices.add(voice);
