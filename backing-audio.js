@@ -48,7 +48,14 @@ export class ChordBacking{
   this.schedule();
  }
  setTempo(value){this.tempo=clampHarmonyTempo(value);}
- setVolume(value){this.masterVolume=clampMix(value,.65);}
+ setVolume(value){
+  this.masterVolume=clampMix(value,.65);
+  // Volume adjustments affect future notes, while the output bus responds
+  // immediately without restarting the harmony clock or active session.
+  if(this.masterBus&&this.ctx){
+   this.masterBus.gain.setTargetAtTime(.88*this.masterVolume,this.ctx.currentTime,.025);
+  }
+ }
  setReverb(value){
   this.reverbMix=clampMix(value,.42);
   if(this.wetBus&&this.ctx)this.wetBus.gain.setTargetAtTime(this.reverbMix*.62,this.ctx.currentTime,.035);
@@ -61,7 +68,7 @@ export class ChordBacking{
   convolver.buffer=makeReverbImpulse(ctx);
   comp.threshold.value=-13;comp.knee.value=12;comp.ratio.value=2.5;
   comp.attack.value=.008;comp.release.value=.24;
-  dry.gain.value=1;wet.gain.value=this.reverbMix*.62;master.gain.value=.88;
+  dry.gain.value=1;wet.gain.value=this.reverbMix*.62;master.gain.value=.88*this.masterVolume;
   dry.connect(master);convolver.connect(wet);wet.connect(master);
   master.connect(comp).connect(ctx.destination);
   this.dryBus=dry;this.wetBus=wet;this.reverb=convolver;
@@ -104,20 +111,20 @@ export class ChordBacking{
  playChord(chord,when,barDuration,velocity=1){
   const length=Math.max(.24,Math.min(1.7,barDuration*.79));
   const count=Math.max(1,chord.midi.length);
-  const strength=.34*this.masterVolume*velocity/count;
+  const strength=.34*velocity/count;
   // Keep root-position tonic distinct; slightly emphasize the root without inverting tones.
   for(let index=0;index<chord.midi.length;index++){
    const weight=chord.index===2&&index===0?1.18:1;
    this.playNote(chord.midi[index],when,length,strength*weight);
   }
   // The tonic uses a less boomy C3 bass; the other chords retain their lower anchor.
-  this.playNote(chord.bassMidi,when,Math.min(length,1.25),.052*this.masterVolume);
+  this.playNote(chord.bassMidi,when,Math.min(length,1.25),.052);
  }
  click(when,strong){
   const ctx=this.ctx,g=ctx.createGain(),o=ctx.createOscillator();
   o.type='sine';o.frequency.setValueAtTime(strong?1030:720,when);
   g.gain.setValueAtTime(.0001,when);
-  g.gain.exponentialRampToValueAtTime((strong?.05:.026)*this.masterVolume,when+.006);
+  g.gain.exponentialRampToValueAtTime((strong?.05:.026),when+.006);
   g.gain.exponentialRampToValueAtTime(.0001,when+.075);
   o.connect(g).connect(this.dryBus);o.start(when);o.stop(when+.09);
   const voice={osc:o,gain:g};this.activeVoices.add(voice);
