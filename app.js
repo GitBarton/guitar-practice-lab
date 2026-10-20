@@ -15,6 +15,7 @@ import {completeSongLibrary,manualSongs,newCustomSong,SONG_METERS,CUSTOM_SONG_KI
 import {buildTwoFiveOne,clampHarmonyTempo} from './harmony.js';
 import {ChordBacking} from './backing-audio.js';
 import {coachTargets,coachStageDescription} from './practice-coach.js';
+import {dominantBebopDescending} from './bebop-lines.js';
 import {modalChallenge} from './modal-improv.js';
 import {loadState,saveState,addRecord,uid,weeklyReport,downloadText,exportCsv,importedSnapshot,validRatingPercent,isHighQualityDrill,ratingDisplay,CloudSync} from './storage.js';
 const state=loadState();
@@ -114,6 +115,7 @@ function referencePattern(d,key,stage=null){
  return null;
 }
 function drillDiagramNotes(d,key,stage){
+ if(stage?.exampleKind==='bebop-descending')return dominantBebopDescending(key).notes;
  if(stage?.exampleKind?.startsWith('barry6-'))return sixthDiminishedNotes(stage.exampleKind,key);
  if(stage?.exampleKind?.startsWith('modal-target-'))return modalChallenge(stage.exampleKind.slice(13),key).notes;
  if(stage?.exampleKind?.startsWith('rhythm-153-'))return rhythmFigure(stage.exampleKind,key);
