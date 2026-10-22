@@ -249,7 +249,7 @@ test('repertoire page provides validated manual-song form and includes it throug
 });
 
 test('coached jazz drills have evolving visual targets and a single shared piano engine',()=>{
- assert.match(app,/import \{coachTargets,coachStageDescription\} from '\.\/practice-coach\.js'/);
+ assert.match(app,/import \{coachTargets,coachStageDescription(?:,[^}]+)?\} from '\.\/practice-coach\.js'/);
  assert.match(app,/function renderDrillCoach\(d,key,stage\)/);
  assert.match(app,/data-coach-chord/);
  assert.match(app,/coach-next-key/);
