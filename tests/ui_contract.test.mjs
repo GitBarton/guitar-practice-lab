@@ -22,7 +22,7 @@ test('rating control and release timeline have responsive styles and changed off
  assert.match(css,/\.rating-scale/);
  assert.match(css,/\.release-timeline/);
  assert.match(css,/@media\(max-width:410px\)/);
- assert.match(sw,/gpl-app-v1\.2\.0/);
+ assert.match(sw,/const CACHE='gpl-app-[a-z0-9.-]+'/ );
  assert.match(sw,/'\.\/song-audio\.js'/);
  assert.match(sw,/'\.\/backing-audio\.js'/);
  assert.match(sw,/'\.\/harmony\.js'/);
@@ -142,7 +142,7 @@ test('warm jazz studio theme retains visible controls in both light and dark mod
  assert.match(html,/content="#211f2d"/);
  assert.equal(manifest.icons[0].src,'./icon.svg');
  assert.equal(manifest.theme_color,'#211f2d');
- assert.match(sw,/gpl-app-v1\.2\.0-[a-z0-9-]+/);
+ assert.match(sw,/const CACHE='gpl-app-[a-z0-9.-]+'/ );
 });
 
 test('Home offers reference pitch without microphone and reuses practice metronome',()=>{
@@ -182,11 +182,11 @@ test('Jazz Masters vocabulary zone has four artists, valid controls, reference l
 
 test('existing pentatonic and dom7 drills use verified selectable guitar patterns',()=>{
  assert.match(app,/import \{referencePentatonicBox,referencePentatonicSkip,referenceDominant7\} from '\.\/reference-patterns\.js'/);
- assert.match(app,/function referencePattern\(d,key\)/);
+ assert.match(app,/function referencePattern\(d,key,stage=null\)/);
  assert.match(app,/function drillDiagramNotes\(d,key,stage\)/);
  assert.match(app,/pentatonic-box:/);
  assert.match(app,/dom-root:/);
- assert.match(app,/referencePatternControls\(d,key\)/);
+ assert.match(app,/function referencePatternControls\(d,key,stage=null\)/);
  assert.match(app,/referencePanel/);
  assert.match(app,/aria-pressed=/);
  assert.match(css,/\.reference-pattern-panel/);
