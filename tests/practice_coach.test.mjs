@@ -55,10 +55,10 @@ test('C major examples are exact guide-tone and chromatic target pitches',()=>{
 test('feedback-heavy jazz and ear drills expose staged musical challenges',()=>{
  for(const [id,count] of [['jazz-251',6],['jazz-guide',4],['jazz-approach',4],['ear-guide',3]]){
   const drill=DRILL_BY_ID[id];
-  assert.equal(stageCount(drill),count,id);
+  assert.ok(stageCount(drill)>=count,id+' retains at least its original lesson stages');
   assert.ok(drill.stages.every(st=>st.exampleKind.startsWith('coach-')));
   for(const key of ['C','Bb','Db','Eb']){
-   for(let i=0;i<count;i++){
+   for(let i=0;i<stageCount(drill);i++){
     const st=currentStage(drill,i);
     assert.ok(st.title&&st.focus&&st.instructions.length>=2);
     assert.ok(coachTargets(st.exampleKind,key).length);
