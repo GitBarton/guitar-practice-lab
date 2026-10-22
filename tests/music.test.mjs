@@ -49,13 +49,13 @@ test('selected drills have correctly sized, human-readable, nonempty practice st
 });
 test('G-string vibrato diagram shows playable, isolated G string positions only',()=>{
  const vibrato=DRILL_BY_ID['muting-vibrato-g'];
- assert.equal(vibrato.stages.length,5);
+ assert.equal(vibrato.stages.length,7);
  const notes=buildExample('vibrato-g');
  assert.ok(notes.every(n=>n.string===2),'all notes belong to the G string');
  assert.deepEqual(notes.slice(0,4).map(n=>[n.fret,n.name]),[[5,'C4'],[6,'Db4'],[7,'D4'],[8,'Eb4']]);
  assert.deepEqual(notes.slice(4).map(n=>n.fret),[5,7,5]);
  assert.deepEqual(notes.slice(4).map(n=>n.pick),['D','H','P']);
- assert.deepEqual(vibrato.stages.slice(0,4).map(s=>s.activeNote),[0,1,2,3]);
+ assert.deepEqual(vibrato.stages.slice(0,4).map(s=>s.finger),[1,2,3,4]);
  assert.ok(vibrato.stages[4].instructions.join(' ').includes('pull off'));
 });
 test('double stops and octave-pair diagrams use the named physical strings',()=>{

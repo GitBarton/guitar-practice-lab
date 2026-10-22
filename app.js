@@ -235,6 +235,10 @@ function nextDrillCoachKey(){
  state.active.key=KEYS[(current+1+KEYS.length)%KEYS.length];
  diagramStep=-1;saveState(state);render();
 }
+function renderVibratoControls(drill,stageIndex){
+ if(drill?.id!=='muting-vibrato-g')return '';
+ return `<div class="buttons" role="group" aria-label="Choose vibrato finger" style="margin-top:12px">${[1,2,3,4].map(finger=>`<button type="button" class="btn small" data-action="vibrato-finger:${finger}" aria-pressed="${stageIndex===finger-1}">Finger ${finger}</button>`).join('')}${btn('vibrato-repeat','Repeat this stage','small ghost')}</div><p class="small muted">Only G sounds. D and B stay quiet. Take a short rest between attempts.</p>`;
+}
 function renderPractice(){if(!state.active)return `${pageHeader('Practice','Active workspace','Start a session to display your musical drills and timer.')}
  <div class="card empty">No active session. Build your practice plan on Today, or open a single drill from the library.<div class="buttons" style="justify-content:center;margin-top:16px"><a href="#today" class="btn primary">Choose a session</a><a href="#drills" class="btn">Browse drills</a></div></div>`;
  const a=state.active,entry=currentDrill();if(!entry)return renderEndSession();const d=DRILL_BY_ID[entry.id],isSong=entry.id==='song',song=allSongs().find(s=>s.id===a.songId)||SONGS[0];const time=Math.max(0,Math.ceil(entry.minutes*60-clockMs()/1000));const stageIndex=d?clampedStageIndex(d,entry.stageIndex):0,stage=d?currentStage(d,stageIndex):null;const isChords=d?.kind==='chords',isMusical=['ii-v-i','enclosure','approach'].includes(d?.kind);
@@ -247,7 +251,7 @@ function renderPractice(){if(!state.active)return `${pageHeader('Practice','Acti
  const stepLabel=isSong?song.title:d.title;
  const guidance=stage?stage.focus:isSong?'Pick a short passage, rehearse it slowly, then compare with your performance tempo.':d.kind==='enclosure'?`Aim for ${enclosureGuide(a.key).target}, the major third of ${enclosureGuide(a.key).dominant}. The approach notes decorate that target.`:d.category==='muting'?'Listen for every unintended string. Silence is part of the exercise.':d.category==='arpeggio'?'Identify the root, third and seventh where present; keep string changes smooth.':d.category==='picking'?'Use a small, relaxed down-up motion. Keep the attack even before raising tempo.':d.category==='jazz'?'Hear each chord change; aim for guide tones on strong beats.':d.category==='ear'?'Sing or imagine the target first; check the result on the guitar.':d.category==='comping'?'Play the rhythm first; keep unused strings quiet and releases deliberate.':'Keep the phrase musical rather than racing through the pattern.';
  const instruct=stage?stage.instructions:isSong?['Select one difficult section, not the entire arrangement.','Play once under tempo, then at performance tempo.','Record what specifically needs work for the next session.']:d.kind==='enclosure'?enclosureInstructions(a.key):d.instructions;
- const stageBar=stage?`<section class="stage-panel" aria-label="Guided exercise stages"><div class="stage-summary"><div><div class="eyebrow">Musical challenge · ${stageIndex+1} of ${stageCount(d)}</div><h3>${safe(stage.title)}</h3></div><span class="pill">${Math.round(entry.minutes/stageCount(d)*60)} sec suggested</span></div><div class="stage-steps"><button type="button" data-action="stage-prev" class="btn small" ${stageIndex===0?'disabled':''}>← Previous stage</button><span class="small muted">Advance when ready; timer and metronome continue. Press Enter for next stage.</span><button type="button" data-action="stage-next" class="btn small" ${stageIndex===stageCount(d)-1?'disabled':''}>Next stage →</button></div></section>`:'';
+ const stageBar=stage?`<section class="stage-panel" aria-label="Guided exercise stages"><div class="stage-summary"><div><div class="eyebrow">Musical challenge · ${stageIndex+1} of ${stageCount(d)}</div><h3>${safe(stage.title)}</h3></div><span class="pill">${stage.seconds||Math.round(entry.minutes/stageCount(d)*60)} sec suggested</span></div><div class="stage-steps"><button type="button" data-action="stage-prev" class="btn small" ${stageIndex===0?'disabled':''}>← Previous stage</button><span class="small muted">Advance when ready; timer and metronome continue. Press Enter for next stage.</span><button type="button" data-action="stage-next" class="btn small" ${stageIndex===stageCount(d)-1?'disabled':''}>Next stage →</button></div>${renderVibratoControls(d,stageIndex)}</section>`:'';
  const positionControl=(!isSong&&['arpeggio','scale'].includes(d?.kind)&&!referencePattern(d,a.key))?`<div class="form-group" style="max-width:280px;margin:12px 0"><label>Fretboard area (suggested route)</label><select data-setting="position"><option value="low" ${state.settings.position==='low'?'selected':''}>Lower neck</option><option value="mid" ${state.settings.position==='mid'?'selected':''}>Middle neck</option><option value="high" ${state.settings.position==='high'?'selected':''}>Upper neck</option></select></div>`:'';
  const referencePanel=d?referencePatternControls(d,a.key,stage):'';
  const noteControls=isChords||isSong?'':`<div class="buttons" style="margin-top:10px">${btn('step-prev',`${ic('minus')} Previous note`,'small')}${tag(diagramStep>=0?`Note ${diagramStep+1} of ${notes.length}`:'All notes')}${btn('step-next',`Next note ${ic('arrow')}`,'small')}<div style="flex:1"></div><div class="segmented"><button class="${state.settings.diagram==='tab'?'active':''}" data-action="diagram-tab">Staff + TAB</button><button class="${state.settings.diagram==='fretboard'?'active':''}" data-action="diagram-fretboard">Fretboard</button></div></div><div class="buttons" style="margin-top:8px">${btn('labels-note',state.settings.labels==='note'?'✓ Notes':'Notes','small')}${btn('labels-interval',state.settings.labels==='interval'?'✓ Intervals':'Intervals','small')}${btn('labels-hidden',state.settings.labels==='hidden'?'✓ Labels hidden':'Hide labels','small')}</div>`;
@@ -634,7 +638,17 @@ function movePracticeStage(delta){
  entry.stageIndex=next;diagramStep=currentStage(drill,next)?.activeNote??-1;
  saveState(state);render();
 }
+function selectVibratoFinger(finger){
+ const entry=currentDrill(),drill=DRILL_BY_ID[entry?.id];
+ if(drill?.id!=='muting-vibrato-g'||!Number.isInteger(finger)||finger<1||finger>4)return;
+ movePracticeStage(finger-1-clampedStageIndex(drill,entry.stageIndex));
+}
+function repeatVibratoStage(){
+ if(currentDrill()?.id!=='muting-vibrato-g')return;
+ diagramStep=0;render();
+}
 const actions={
+ 'vibrato-repeat':repeatVibratoStage,
  'drill-chords-toggle':toggleDrillBacking,
  'coach-next-key':nextDrillCoachKey,
  'mode-positions-next':()=>{const idx=CAGED_REGIONS.findIndex(s=>s.id===modalPosition);modalPosition=CAGED_REGIONS[(idx+1)%CAGED_REGIONS.length].id;render();},
@@ -724,6 +738,7 @@ document.addEventListener('click',async ev=>{const btn=ev.target.closest('[data-
  }
  return;
 }
+ if(name?.startsWith('vibrato-finger:')){selectVibratoFinger(Number(name.slice(15)));return;}
  if(name?.startsWith('pentatonic-box:')){
   const box=Number(name.slice(15));if(Number.isInteger(box)&&box>=1&&box<=5){pentatonicBox=box;diagramStep=-1;render();}return;
  }
