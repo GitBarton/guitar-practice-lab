@@ -55,6 +55,15 @@ export function buildExample(kind,key='C',quality='maj7',octaves=2,position='low
  if(kind==='arpeggio'||kind==='scale')return buildNotePath(key,quality,octaves,position);
  if(kind==='arpeggio-dim7')return buildNotePath(key,'dim7',octaves,position);
 
+ // Stage-specific G-string targets; fixed technique frets deliberately do not transpose with session key.
+ if(/^vibrato-g-[1-4]$/.test(kind)){
+  const finger=Number(kind.at(-1)),fret=4+finger,midi=55+fret;
+  return [{...cell(noteName(midi),2,fret,'D'),midi,finger,index:0}];
+ }
+ if(kind==='vibrato-g-legato')return [[5,1,'D'],[7,3,'H'],[5,1,'P']].map(([fret,finger,pick],index)=>({
+  ...cell(noteName(55+fret),2,fret,pick),midi:55+fret,finger,index
+ }));
+
  // Fingering targets for a G-only vibrato isolation drill (not simultaneous notes).
  if(kind==='vibrato-g')return [
   cell('C4',2,5,'D'),cell('Db4',2,6,'D'),cell('D4',2,7,'D'),cell('Eb4',2,8,'D'),
