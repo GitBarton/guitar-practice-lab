@@ -219,11 +219,12 @@ async function toggleDrillBacking(){
  stopHarmonyPlayback();metronome.stop();songTrackPlayer.pause();referencePitch.stop();
  try{
   const plan=buildTwoFiveOne(state.active.key,'major');
-  await harmonyBacking.start(plan,{
+  const started=await harmonyBacking.start(plan,{
    tempo:Math.min(180,Math.max(40,state.settings.defaultBpm)),
    barsPerChord:1,volume:harmonySettings.volume??.65,
    reverb:harmonySettings.reverb??.42,click:true
   });
+  if(!started)return;
   drillBackingOwner=true;updateDrillBackingUI();
  }catch(error){drillBackingOwner=false;showToast('Piano accompaniment unavailable: '+error.message);}
 }
@@ -384,7 +385,7 @@ async function toggleHarmonyPlayback(){
  try{
   metronome.stop();songTrackPlayer.pause();
   const plan=buildTwoFiveOne(harmonySettings.key,harmonySettings.mode);
-  await harmonyBacking.start(plan,harmonySettings);
+  if(!await harmonyBacking.start(plan,harmonySettings))return;
   harmonyStarted=Date.now();
   updateHarmonyUI();
  }catch(error){showToast('Chord playback unavailable: '+error.message);}

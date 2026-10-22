@@ -13,6 +13,14 @@ const CHORDS=Object.freeze({
   min6:{intervals:[0,3,7,9],third:3,seventh:null}
 });
 export function noteForKey(pc,key){const list=SHARP_KEYS.has(key)?SHARP_NAMES:FLAT_NAMES;return list[((pc%12)+12)%12];}
+// Preserve harmonic letter names (e.g. Cb in Gb major), including theoretical minor keys.
+export function spellInterval(root,semitones,degree){
+ const letters='CDEFGAB',natural=[0,2,4,5,7,9,11];
+ const source=letters.indexOf(root[0]),alter=[...root.slice(1)].reduce((n,a)=>n+(a==='#'?1:a==='b'?-1:0),0);
+ const letter=(source+degree-1)%7,target=(natural[source]+alter+semitones+120)%12;
+ let accidental=(target-natural[letter]+18)%12-6;
+ return letters[letter]+(accidental<0?'b'.repeat(-accidental):'#'.repeat(accidental));
+}
 export function buildTwoFiveOne(key='C',mode='major'){
  if(!KNOWN_KEYS.has(key))throw new Error('Choose a supported key.');
  if(mode!=='major'&&mode!=='minor')throw new Error('Choose major or minor.');
@@ -25,15 +33,17 @@ export function buildTwoFiveOne(key='C',mode='major'){
     {role:'V',root:(tonic+7)%12,quality:'dom7b9',suffix:'7♭9'},
     {role:'i',root:tonic,quality:'min6',suffix:'m6'}];
  const chords=defs.map((d,index)=>{
-  const form=CHORDS[d.quality],rootName=noteForKey(d.root,key);
+  const form=CHORDS[d.quality],rootName=spellInterval(key,[2,7,0][index],[2,5,1][index]);
+  const toneDegrees=d.quality==='min6'?[1,3,5,6]:[1,3,5,7,9];
+  const noteNames=form.intervals.map((semi,i)=>spellInterval(rootName,semi,toneDegrees[i]));
   const midiRoot=(index===2?60:48)+d.root; // Bright root-position tonic (C4 for C), lower ii/V support.
   return {
    index,role:d.role,quality:d.quality,rootPc:d.root,rootName,
    label:rootName+d.suffix,
-   degrees:form.intervals.slice(),
+   degrees:form.intervals.slice(),noteNames,
    midi:form.intervals.map(semi=>midiRoot+semi),
    bassMidi:(index===2?48:36)+d.root,
-   guideTones:[form.third,form.seventh].filter(x=>x!==null).map(semi=>noteForKey(d.root+semi,key))
+   guideTones:[noteNames[1],...(form.seventh===null?[]:[noteNames[3]])]
   };
  });
  return {key,mode,chords,description:mode==='major'?'ii–V–I major':'iiø–V7♭9–i minor'};

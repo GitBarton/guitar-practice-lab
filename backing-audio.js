@@ -27,25 +27,30 @@ export class ChordBacking{
   this.masterVolume=.65;this.reverbMix=.42;this.clickEnabled=false;this.barNumber=0;this.nextBarTime=0;
   this.dryBus=null;this.wetBus=null;this.reverb=null;this.masterBus=null;this.outputCompressor=null;
   this.activeVoices=new Set();
+  this.startRequest=0;this.positionEvents=[];
  }
  async start(plan,options={}){
   if(!plan||!Array.isArray(plan.chords)||plan.chords.length!==3)throw Error('Choose a major or minor ii–V–I.');
   this.stop();
+  const request=this.startRequest;
   const Audio=globalThis.AudioContext||globalThis.webkitAudioContext;
   if(!Audio)throw Error('Browser audio is not available.');
   this.ctx=this.ctx||new Audio();
   await this.ctx.resume();
+  // Stop/navigation or a newer Play wins over a delayed browser permission/resume.
+  if(request!==this.startRequest)return false;
   this.setupOutput();
   this.wetBus.gain.setTargetAtTime(this.reverbMix*.62,this.ctx.currentTime,.02);
   this.plan=plan;this.tempo=clampHarmonyTempo(options.tempo??72);
   this.barsPerChord=[1,2,4].includes(Number(options.barsPerChord))?Number(options.barsPerChord):2;
-  this.masterVolume=clampMix(options.volume??.65,.65);
+  this.setVolume(options.volume??.65);
   this.setReverb(options.reverb??.42);
   this.clickEnabled=Boolean(options.click);
   this.barNumber=0;this.nextBarTime=this.ctx.currentTime+.09;
   this.playing=true;
   this.timer=setInterval(()=>this.schedule(),30);
   this.schedule();
+  return true;
  }
  setTempo(value){this.tempo=clampHarmonyTempo(value);}
  setVolume(value){
@@ -76,6 +81,7 @@ export class ChordBacking{
  }
  setClick(value){this.clickEnabled=Boolean(value);}
  stop(){
+  this.startRequest++;this.positionEvents=[];
   if(this.timer!==null)clearInterval(this.timer);
   this.timer=null;this.playing=false;
   if(this.ctx){const now=this.ctx.currentTime;
@@ -106,7 +112,7 @@ export class ChordBacking{
   gain.connect(this.reverb);
   osc.start(when);osc.stop(when+duration+.01);
   const voice={osc,gain};this.activeVoices.add(voice);
-  osc.onended=()=>this.activeVoices.delete(voice);
+  osc.onended=()=>{this.activeVoices.delete(voice);osc.disconnect?.();filter.disconnect?.();gain.disconnect?.();};
  }
  playChord(chord,when,barDuration,velocity=1){
   const length=Math.max(.24,Math.min(1.7,barDuration*.79));
@@ -128,10 +134,17 @@ export class ChordBacking{
   g.gain.exponentialRampToValueAtTime(.0001,when+.075);
   o.connect(g).connect(this.dryBus);o.start(when);o.stop(when+.09);
   const voice={osc:o,gain:g};this.activeVoices.add(voice);
-  o.onended=()=>this.activeVoices.delete(voice);
+  o.onended=()=>{this.activeVoices.delete(voice);o.disconnect?.();g.disconnect?.();};
  }
  schedule(){
   if(!this.playing||!this.ctx||!this.plan)return;
+  const now=this.ctx.currentTime;
+  // A throttled timer must not replay a backlog of chord attacks in the past.
+  const barSeconds=4*60/this.tempo;
+  if(this.nextBarTime<now-.15){
+   const skipped=Math.ceil((now-.15-this.nextBarTime)/barSeconds);
+   this.nextBarTime+=skipped*barSeconds;this.barNumber+=skipped;
+  }
   let count=0;
   while(this.nextBarTime<this.ctx.currentTime+.15 && count++<3){
    const step=chordAtBar(this.barNumber,this.barsPerChord);
@@ -139,9 +152,15 @@ export class ChordBacking{
    const beatSeconds=60/this.tempo,barSeconds=4*beatSeconds;
    this.playChord(chord,this.nextBarTime,barSeconds,step.barInChord===1?1:.7);
    if(this.clickEnabled){for(let beat=0;beat<4;beat++)this.click(this.nextBarTime+beat*beatSeconds,beat===0);}
-   this.position={...step,chord,label:chord.label,barNumber:this.barNumber+1};
-   this.onPosition(this.position);
+   for(let beat=0;beat<4;beat++)this.positionEvents.push({
+    ...step,chord,label:chord.label,barNumber:this.barNumber+1,beat:beat+1,
+    when:this.nextBarTime+beat*beatSeconds,key:this.plan.key,mode:this.plan.mode
+   });
    this.nextBarTime+=barSeconds;this.barNumber++;
   }
+  // Scheduling looks ahead; visible feedback follows the audio clock, not that lookahead.
+  let due=null;
+  while(this.positionEvents.length&&this.positionEvents[0].when<=now)due=this.positionEvents.shift();
+  if(due){this.position=due;this.onPosition(due);}
  }
 }
