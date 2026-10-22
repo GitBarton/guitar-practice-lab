@@ -14,7 +14,7 @@ import {referencePentatonicBox,referencePentatonicSkip,referenceDominant7} from 
 import {completeSongLibrary,manualSongs,newCustomSong,SONG_METERS,CUSTOM_SONG_KIND} from './manual-songs.js';
 import {buildTwoFiveOne,clampHarmonyTempo} from './harmony.js';
 import {ChordBacking} from './backing-audio.js';
-import {coachTargets,coachStageDescription} from './practice-coach.js';
+import {coachTargets,coachStageDescription,HARMONY_LESSON_FOCI,harmonyLesson} from './practice-coach.js';
 import {dominantBebopDescending} from './bebop-lines.js';
 import {modalChallenge} from './modal-improv.js';
 import {loadState,saveState,addRecord,uid,weeklyReport,downloadText,exportCsv,importedSnapshot,validRatingPercent,isHighQualityDrill,ratingDisplay,CloudSync} from './storage.js';
@@ -30,8 +30,12 @@ document.body.dataset.theme=state.settings.theme;
 const songTrackPlayer=new SongTrackPlayer(()=>updateSongTrackUI());
 const referencePitch=new ReferencePitchPlayer();
 let selectedHomePitch=45,homeTempoTaps=[];
-const harmonySettings=Object.assign({key:'C',mode:'major',tempo:72,barsPerChord:2,volume:.7,reverb:.42,click:false},state.settings.harmony||{});
+const harmonySettings=Object.assign({key:'C',mode:'major',tempo:72,barsPerChord:2,volume:.7,reverb:.42,click:false,focus:'roots',guitarPosition:'low'},state.settings.harmony||{});
 let harmonyPosition=null,harmonyStarted=0,harmonyElapsed=0;
+let harmonyPreviewChord=0,harmonyChallenge=0;
+const harmonyDraft={ratingPct:80,notes:'',nextFocus:''};
+if(!HARMONY_LESSON_FOCI.some(f=>f.id===harmonySettings.focus))harmonySettings.focus='roots';
+if(!['low','mid'].includes(harmonySettings.guitarPosition))harmonySettings.guitarPosition='low';
 let drillBackingOwner=false,drillBackingMode='major';
 const harmonyBacking=new ChordBacking(position=>{harmonyPosition=position;updateHarmonyUI();updateDrillBackingUI();});
 let showRating=false,diagramStep=-1,ratingPercent=80,cloudMessage='Local only · records saved in this browser',cloudKind='info';let toastTimeout=0;
@@ -336,6 +340,45 @@ function renderModesLab(){
  <p class="footnote">Harmony is recalculated from ${safe(modalKey)} ${safe(scale.title)}. Seven-tone modes use alternate-degree tertian stacks; altered and symmetric diminished scales show their characteristic dominant/diminished chord colors. This prevents incorrectly displaying the major-scale chords for every mode. Guitar positions above use five CAGED-root regions, not claimed textbook copies.</p>
  </section>`;
 }
+function currentHarmonyLesson(){
+ const chordIndex=harmonyBacking.playing&&harmonyPosition?harmonyPosition.chordIndex:harmonyPreviewChord;
+ return harmonyLesson({key:harmonySettings.key,mode:harmonySettings.mode,focus:harmonySettings.focus,
+  chordIndex,position:harmonySettings.guitarPosition,challenge:harmonyChallenge});
+}
+function renderHarmonyLessonControls(){
+ return `<section aria-label="Reactive harmony lesson" style="margin-top:18px"><div class="form-row">
+ <div class="form-group"><label for="harmony-lesson-focus">Lesson focus</label><select id="harmony-lesson-focus" data-harmony-setting="focus">${HARMONY_LESSON_FOCI.map(f=>`<option value="${f.id}" ${harmonySettings.focus===f.id?'selected':''}>${safe(f.label)}</option>`).join('')}</select></div>
+ <div class="form-group"><label for="harmony-guitar-position">Guitar register</label><select id="harmony-guitar-position" data-harmony-setting="guitarPosition"><option value="low" ${harmonySettings.guitarPosition==='low'?'selected':''}>Lower register</option><option value="mid" ${harmonySettings.guitarPosition==='mid'?'selected':''}>Middle register</option></select></div></div>
+ <div class="buttons">${btn('harmony-next-focus','Next focus','small')}${btn('harmony-repeat-focus','Repeat focus','small')}${btn('harmony-challenge','Challenge','small')}${btn('harmony-preview-next','Next chord (silent)','small ghost')}</div>
+ <div id="harmony-lesson-target">${renderHarmonyLessonTarget()}</div></section>`;
+}
+function renderHarmonyLessonTarget(){
+ const lesson=currentHarmonyLesson();
+ return `<div class="callout" style="margin-top:12px"><div class="eyebrow">${safe(lesson.key)} ${safe(lesson.mode)} · variation ${lesson.variation+1}</div><h3>${safe(lesson.chord.label)} → ${safe(lesson.nextChord.label)}</h3><p>${safe(lesson.cue)}</p><p><strong>Targets:</strong> ${safe(lesson.targetSummary)}</p></div>
+ <div class="diagram-viewport score-viewport" aria-label="Current chord target notation">${renderGuitarStaff(lesson.notes)}</div>
+ <div class="diagram-viewport" aria-label="Current chord target fretboard">${renderFretboardSvg(lesson.notes,-1,'note')}</div>`;
+}
+function updateHarmonyLessonUI(){
+ const target=$('harmony-lesson-target');if(!target)return;
+ // Chord changes and lesson controls refresh notation; beat updates preserve scroll/focus.
+ const signature=[harmonySettings.key,harmonySettings.mode,harmonySettings.focus,harmonySettings.guitarPosition,
+  harmonyChallenge,harmonyBacking.playing&&harmonyPosition?harmonyPosition.chordIndex:harmonyPreviewChord].join('|');
+ if(target.dataset.signature!==signature){target.innerHTML=renderHarmonyLessonTarget();target.dataset.signature=signature;}
+ const preview=document.querySelector('[data-action="harmony-preview-next"]');if(preview)preview.disabled=harmonyBacking.playing;
+}
+function changeHarmonyLesson(action){
+ if(action==='preview'&&harmonyBacking.playing)return;
+ if(action==='next'){
+  const index=HARMONY_LESSON_FOCI.findIndex(f=>f.id===harmonySettings.focus);
+  harmonySettings.focus=HARMONY_LESSON_FOCI[(index+1)%HARMONY_LESSON_FOCI.length].id;harmonyChallenge=0;
+ }else if(action==='repeat')harmonyChallenge=0;
+ else if(action==='challenge')harmonyChallenge=(harmonyChallenge+1)%4;
+ else if(action==='preview')harmonyPreviewChord=(harmonyPreviewChord+1)%3;
+ if(!harmonyStarted)harmonyStarted=Date.now();
+ state.settings.harmony={...harmonySettings};saveState(state);
+ const focus=$('harmony-lesson-focus');if(focus)focus.value=harmonySettings.focus;
+ updateHarmonyUI();
+}
 function renderHarmony(){
  const plan=buildTwoFiveOne(harmonySettings.key,harmonySettings.mode);
  const options=KEYS.map(key=>'<option value="'+safe(key)+'" '+(harmonySettings.key===key?'selected':'')+'>'+safe(key)+'</option>').join('');
@@ -343,7 +386,7 @@ function renderHarmony(){
  const volOptions=[[.25,'Soft'],[.55,'Medium'],[.7,'Fuller'],[.85,'Loud'],[1,'Maximum']].map(v=>'<option value="'+v[0]+'" '+(Number(harmonySettings.volume)===v[0]?'selected':'')+'>'+v[1]+'</option>').join('');
  const wetOptions=[[0,'Dry'],[.25,'Light room'],[.42,'Warm room'],[.65,'Wet'],[.85,'Very wet']].map(v=>'<option value="'+v[0]+'" '+(Number(harmonySettings.reverb??.42)===v[0]?'selected':'')+'>'+v[1]+'</option>').join('');
  const cards=plan.chords.map((chord,i)=>'<div class="harmony-chord" data-harmony-card="'+i+'"><div class="eyebrow">'+safe(chord.role)+'</div><h2>'+safe(chord.label)+'</h2><div class="small muted">Guide tones: '+safe(chord.guideTones.join(' · '))+'</div></div>').join('');
- const scores=Array.from({length:11},(_,i)=>i*10).map(score=>'<option value="'+score+'" '+(score===80?'selected':'')+'>'+score+'%</option>').join('');
+ const scores=Array.from({length:11},(_,i)=>i*10).map(score=>'<option value="'+score+'" '+(score===harmonyDraft.ratingPct?'selected':'')+'>'+score+'%</option>').join('');
  return pageHeader('Jazz harmony','ii–V–I Practice Zone','Hear major and minor progressions, practise guide tones and improvise with a piano-style chord pulse.')+
  '<div class="harmony-shell"><div class="card"><div class="card-header"><div><div class="eyebrow">No recordings, no subscription</div><h2>Chord accompaniment</h2></div>'+tag('Local audio',true)+'</div>'+
  '<div class="form-row" style="margin-top:12px"><div class="form-group"><label>Key</label><select data-harmony-setting="key">'+options+'</select></div>'+
@@ -357,6 +400,7 @@ function renderHarmony(){
  '<p id="harmony-status" class="small muted" role="status">Ready. Press Play to hear the chords.</p>'+
  '<div class="harmony-chord-grid">'+cards+'</div>'+
  '<div class="harmony-bar"><span id="harmony-position">Waiting for playback</span><span id="harmony-next"></span></div>'+
+ renderHarmonyLessonControls()+
  '<p class="footnote">The synthetic, electric-piano-inspired sound is generated in this browser. It is not a sampled Fender Rhodes instrument. Start audio with a click. Change key or mode to reset the progression. The backing click uses the same audio clock as the chords.</p></div>'+
  '<aside class="card"><div class="eyebrow">Practice this progression</div><h2 style="margin:10px 0 14px">One chord at a time</h2>'+
  '<ol class="instruction-list"><li><strong>Listen:</strong> hear each chord change before touching the fretboard.</li>'+
@@ -364,8 +408,10 @@ function renderHarmony(){
  '<li><strong>Phrase:</strong> improvise a two-bar question and answer; land deliberately on a chord tone.</li>'+
  '<li><strong>Switch:</strong> try the other mode in the same key, then work around the circle of fourths.</li></ol>'+
  '<div class="divider"></div><h3>Record this attempt</h3>'+
+ '<p class="small muted">Save before changing key or mode; either starts a new timed attempt.</p>'+
  '<div class="form-group"><label>Execution quality</label><select id="harmony-score">'+scores+'</select></div>'+
- '<div class="form-group" style="margin-top:12px"><label>What went well / needs work?</label><textarea id="harmony-notes" maxlength="600" rows="3" placeholder="e.g. G7 third was solid; work on Dm7♭5 voice leading"></textarea></div>'+
+ '<div class="form-group" style="margin-top:12px"><label>What went well / needs work?</label><textarea id="harmony-notes" maxlength="600" rows="3" placeholder="e.g. G7 third was solid; work on Dm7♭5 voice leading">'+safe(harmonyDraft.notes)+'</textarea></div>'+
+ '<div class="form-group"><label for="harmony-next-focus">Next focus</label><input id="harmony-next-focus" maxlength="200" value="'+safe(harmonyDraft.nextFocus)+'" placeholder="e.g. Resolve the minor tonic third" /></div>'+
  '<div class="buttons">'+btn('harmony-log','Save practice note','primary full')+'</div>'+
  '<p class="footnote">Saves a small progress record using your existing private practice storage and cloud sync. No audio is uploaded.</p></aside></div>';
 }
@@ -374,9 +420,10 @@ function updateHarmonyUI(){
  if(!play)return;
  const active=harmonyBacking.playing&&here;
  play.textContent=active?'Playing '+here.chord.label+' · loop '+here.loop:'Stopped. Press Play to hear the chords.';
- if(label)label.textContent=active?'Bar '+here.barNumber+' · '+here.chord.label+' · bar '+here.barInChord+' of '+harmonyBacking.barsPerChord:'Waiting for playback';
+ if(label)label.textContent=active?'Bar '+here.barNumber+' · beat '+(here.beat||1)+' · '+here.chord.label+' · bar '+here.barInChord+' of '+harmonyBacking.barsPerChord:'Silent preview · '+buildTwoFiveOne(harmonySettings.key,harmonySettings.mode).chords[harmonyPreviewChord].label;
  const plan=buildTwoFiveOne(harmonySettings.key,harmonySettings.mode);
  if(next)next.textContent=active?'Next: '+plan.chords[(here.chordIndex+1)%3].label:'';
+ updateHarmonyLessonUI();
  document.querySelectorAll('[data-harmony-card]').forEach(element=>element.classList.toggle('current',active&&Number(element.dataset.harmonyCard)===here.chordIndex));
 }
 async function toggleHarmonyPlayback(){
@@ -405,10 +452,14 @@ function logHarmonyAttempt(){
  if(!Number.isInteger(score)||score<0||score>100||score%10!==0){showToast('Choose a rating in 10% steps.');return;}
  const playedSeconds=Math.max(0,Math.round((harmonyElapsed+(harmonyStarted?Date.now()-harmonyStarted:0))/1000));
  addRecord(state,'drill',{drillId:'harmony-251',key:harmonySettings.key,mode:'harmony',harmonyMode:harmonySettings.mode,
-  bpm:harmonySettings.tempo,barsPerChord:harmonySettings.barsPerChord,ratingPct:score,seconds:playedSeconds,issue:'none',notes});
+  bpm:harmonySettings.tempo,barsPerChord:harmonySettings.barsPerChord,ratingPct:score,seconds:playedSeconds,issue:'none',notes,
+  focus:harmonySettings.focus,guitarPosition:harmonySettings.guitarPosition,variation:harmonyChallenge,
+  voicingFamily:'root-position',nextFocus:harmonyDraft.nextFocus});
  harmonyElapsed=0;if(harmonyStarted)harmonyStarted=Date.now();
  cloud.sync();
+ harmonyDraft.notes='';harmonyDraft.nextFocus='';
  const entry=$('harmony-notes');if(entry)entry.value='';
+ const nextFocus=$('harmony-next-focus');if(nextFocus)nextFocus.value='';
  showToast('ii–V–I practice saved. Progress is available under Progress.');
 }
 function renderSongs(){
@@ -661,6 +712,8 @@ const actions={
  'harmony-play':toggleHarmonyPlayback,'harmony-stop':stopHarmonyPlayback,
  'harmony-slower':()=>harmonyTempoChange(-5),'harmony-faster':()=>harmonyTempoChange(5),
  'harmony-log':logHarmonyAttempt,
+ 'harmony-next-focus':()=>changeHarmonyLesson('next'),'harmony-repeat-focus':()=>changeHarmonyLesson('repeat'),
+ 'harmony-challenge':()=>changeHarmonyLesson('challenge'),'harmony-preview-next':()=>changeHarmonyLesson('preview'),
  'track-play':async()=>{metronome.stop();stopHarmonyPlayback();try{await songTrackPlayer.play();}catch(error){showToast('Cannot play track: '+error.message);}},
  'track-pause':()=>songTrackPlayer.pause(),'track-stop':()=>songTrackPlayer.stop(),
  'track-a':()=>{if(!songTrackPlayer.markA())showToast('Choose a track before setting loop A.');},
@@ -765,7 +818,8 @@ document.addEventListener('change',async ev=>{const el=ev.target;
   if(key==='volume'){harmonyBacking.setVolume(harmonySettings.volume);return;}
   if(key==='reverb'){harmonyBacking.setReverb(harmonySettings.reverb);return;}
   if(key==='click'){harmonyBacking.setClick(harmonySettings.click);return;}
-  stopHarmonyPlayback();render();return;
+  if(key==='focus'||key==='guitarPosition'){harmonyChallenge=0;if(!harmonyStarted)harmonyStarted=Date.now();updateHarmonyLessonUI();return;}
+  stopHarmonyPlayback();harmonyPreviewChord=0;harmonyChallenge=0;harmonyElapsed=0;render();return;
  }
  if(el.id==='song-track-file'&&el.files?.[0]){try{songTrackPlayer.load(el.files[0],route().page==='song'?route().id:state.active?.songId);render();showToast('Local track loaded. Press Play to rehearse.');}catch(error){showToast('Cannot load track: '+error.message);}return;}
  if(el.id==='track-seek'){songTrackPlayer.seek(Number(el.value));return;}
@@ -774,7 +828,7 @@ document.addEventListener('change',async ev=>{const el=ev.target;
 if(el.dataset.setting){let value=el.value;if(el.dataset.setting==='selectedMode'&&state.active)return;state.settings[el.dataset.setting]=value;saveState(state);if(el.dataset.setting==='theme')document.body.dataset.theme=value;render();if(['subdivision','meter'].includes(el.dataset.setting)&&metronome.playing)metronome.stop();}
  if(el.id==='import-file'&&el.files?.[0]){try{const file=el.files[0];if(file.size>25_000_000)throw Error('File is larger than 25 MB.');const json=JSON.parse(await file.text());const added=importedSnapshot(state,json);showToast(`${added} records imported. Existing records preserved.`);cloud.sync();render();}catch(error){showToast('Import failed: '+error.message);}}
 });
-document.addEventListener('input',ev=>{if(ev.target.id==='drill-search'){drillSearchText=ev.target.value;filterDrills();}if(ev.target.id==='session-notes'&&state.active){state.active.notes=ev.target.value;saveState(state);}});
+document.addEventListener('input',ev=>{if(ev.target.id==='harmony-score')harmonyDraft.ratingPct=Number(ev.target.value);if(ev.target.id==='harmony-notes')harmonyDraft.notes=ev.target.value.slice(0,600);if(ev.target.id==='harmony-next-focus')harmonyDraft.nextFocus=ev.target.value.slice(0,200);if(ev.target.id==='drill-search'){drillSearchText=ev.target.value;filterDrills();}if(ev.target.id==='session-notes'&&state.active){state.active.notes=ev.target.value;saveState(state);}});
 function setDrillCategory(category){
  if(category!=='all'&&!CATEGORIES.some(c=>c[0]===category))return;
  selectedDrillCategory=category;
